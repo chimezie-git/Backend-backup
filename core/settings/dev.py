@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import dj_database_url
 from .common import *
 
 load_dotenv()
@@ -11,10 +12,17 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': dj_database_url.config(
+        default= os.getenv("EX_DB_URL"),
+        conn_max_age=600
+    )
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

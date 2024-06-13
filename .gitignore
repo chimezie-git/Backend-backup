@@ -4,3 +4,4 @@ env/
 */migrations/
 *.sqlite
 *.sqlite3
+db.json

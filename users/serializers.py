@@ -41,11 +41,11 @@ class CustomRegisterSerializer(RegisterSerializer, serializers.ModelSerializer):
                 )
         return email
     
-    def validate_phone_number(self, phone):
-        phone_query = get_user_model().objects.filter(phone=phone)
+    def validate_phone_number(self, phone_number):
+        phone_query = get_user_model().objects.filter(phone_number=phone_number)
         if(phone_query.exists()):
             raise serializers.ValidationError("Phone Number is already in use")
-        return phone
+        return phone_number
 
 class ChangePasswordSerializer(serializers.Serializer):
     model = CustomUser
