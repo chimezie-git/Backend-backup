@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'dj_rest_auth.registration',
+    'drf_spectacular',
     # local Apps
     "users.apps.UsersConfig",
     "bills.apps.BillsConfig",
@@ -89,7 +90,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 
 
 # Default primary key field type
@@ -117,6 +118,13 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ],
+    "DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Nitrobills",
+    "DESCRIPTION": "Schema for the nitrobills application Nitrobills is a bill payment app",
+    "VERSION": "1.0.0"
 }
 
 ACCOUNT_ADAPTER = 'users.adapter.CustomAccountAdapter'

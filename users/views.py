@@ -1,18 +1,18 @@
-from django.shortcuts import render
-from dj_rest_auth.registration.views import RegisterView
+import json
+from django.contrib.auth import get_user_model, login as auth_login
+from django.views.generic import TemplateView
+from rest_framework import status
 from rest_framework.generics import UpdateAPIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated   
+from rest_framework.generics import GenericAPIView
+from dj_rest_auth.registration.views import RegisterView
 from dj_rest_auth.models import get_token_model
-from django.contrib.auth import login as auth_login
 from dj_rest_auth.app_settings import api_settings
 from dj_rest_auth.utils import jwt_encode
-from rest_framework.response import Response
-from rest_framework import status
-import json
-from rest_framework.decorators import authentication_classes 
-from rest_framework.permissions import IsAuthenticated   
 
 
-from .serializers import CustomRegisterSerializer, ChangePasswordSerializer
+from .serializers import (CustomRegisterSerializer, ChangePasswordSerializer,ConfirmOtpSerializer, SendOtpSerializer)
 from .models import CustomUser
 from utils import otp
 
@@ -88,19 +88,22 @@ class ChangePasswordView(UpdateAPIView):
                 return Response(response)
 
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
 
-def confirm_email(request):
-    # set email as verified
-    return render(request, "confirm_page.html", {"data": "data"})
+class ConfirmEmailView(TemplateView):
+    template_name="confirm_page.html"
 
-def confirm_otp(request):
-    body_unicode = request.body.decode('utf-8')
-    body = json.loads(body_unicode)
-    
-    return Response()
+class SendOTPView(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        serializer = SendOtpSerializer(data=request.data)
+        code = otp.generate_otp_code()
+        return Response({"otp"}, status=status.HTTP_200_OK)
 
-def send_otp_code(request):
-    code = otp.generate_otp_code()
-    
-    return Response()
+class ConfirmOTPView(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        serializer = ConfirmOtpSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.data
+            data = {"message": "otp sent"}
+            return Response(data, status=status.HTTP_200_OK)
+        data = {"message": "otp failed"}
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)

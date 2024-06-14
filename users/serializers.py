@@ -50,3 +50,10 @@ class CustomRegisterSerializer(RegisterSerializer, serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     model = CustomUser
     password = serializers.CharField(required=True)
+
+class SendOtpSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(required = True)
+
+class ConfirmOtpSerializer(serializers.Serializer):
+    otp_code = serializers.CharField(required = True)
+    phone_number = serializers.CharField(required = True)

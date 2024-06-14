@@ -2,13 +2,12 @@ import os
 import dj_database_url
 from .common import *
 
-
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1',]
+ALLOWED_HOSTS = ["nitrobills-backend.onrender.com",]
 
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = ["https://nitrobills-backend.onrender.com",]
 
 DATABASES = {
     'default': dj_database_url.config(
