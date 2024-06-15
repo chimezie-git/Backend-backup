@@ -14,7 +14,7 @@ from dj_rest_auth.utils import jwt_encode
 
 from .serializers import (CustomRegisterSerializer, ChangePasswordSerializer,ConfirmOtpSerializer, SendOtpSerializer)
 from .models import CustomUser
-from utils import otp
+from app_utils import otp
 
 
 class CustomRegistrationsView(RegisterView):

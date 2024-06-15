@@ -48,7 +48,6 @@ class CustomRegisterSerializer(RegisterSerializer, serializers.ModelSerializer):
         return phone_number
 
 class ChangePasswordSerializer(serializers.Serializer):
-    model = CustomUser
     password = serializers.CharField(required=True)
 
 class SendOtpSerializer(serializers.Serializer):
