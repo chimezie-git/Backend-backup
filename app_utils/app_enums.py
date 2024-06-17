@@ -4,3 +4,11 @@ class TransactionStatus(Enum):
     failed = 'F'
     pending = 'P'
     success = 'S'
+
+class TransactionType(Enum):
+    airtime = 'at'
+    data = 'da'
+    cable = 'ca'
+    electricity = 'el'
+    betting = 'bt'
+    bulk_sms = 'bs'

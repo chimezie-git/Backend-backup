@@ -1,16 +1,19 @@
 import os
 from dotenv import load_dotenv
 from .common import *
+import dj_database_url
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = True
 
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000",]
+
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "example.com"]
 
 # DATABASES = {
 #     'default': dj_database_url.config(
-#         default= os.getenv("EX_DB_URL"),
+#         default= "postgres://my_postgress_ww81_user:ekLAEkguIOXV8PyDC3mswWZt0ACH56FL@dpg-cpmmsjdds78s73ak0660-a.oregon-postgres.render.com/my_postgress_ww81", #os.getenv("EX_DB_URL"),
 #         conn_max_age=600
 #     )
 # }

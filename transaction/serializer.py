@@ -1,22 +1,29 @@
 from rest_framework import serializers
-from .models import Transaction, Beneficiaries
+from .models import Transaction, Beneficiaries, BankInfo
 
-class TransactionDetailSerializer(serializers.Serializer):
+class TransactionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id','user','reference','date','status','payment_type','amount']
+        fields = ['id','user','reference','date','status','is_credit','transaction_type','provider','reciever_number','amount']
 
-# class CreateTransactionSerializer(serializers.Serializer):
-#     class Meta:
-#         model = Transaction
-#         fields = ['reference','date','status','payment_type','amount']
 
-class BeneficiaryDetailSerializer(serializers.Serializer):
+class BeneficiaryDetailSerializer(serializers.ModelSerializer):
+    last_payment = serializers.RelatedField(source='transaction', read_only=True)
     class Meta:
         model = Beneficiaries
-        fields = ['id','user',"name","last_pay_date","payment_type","amount"]
+        fields = ['id',"name","provider", "transaction_type", 'last_payment']
 
-# class CreateBeneficiarySerializer(serializers.Serializer):
-#     class Meta:
-#         model = Beneficiaries
-#         fields = ["name","payment_type","amount"]
+class CreateBeneficiarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Beneficiaries
+        fields = ["name", "provider", "transaction_type"]
+
+class UpdateBeneficiarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Beneficiaries
+        fields = ["name","transaction_type","provider","amount"]
+
+class BankInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankInfo
+        fields = ["id","user","amount","customer_id","customer_code","account_status","account_number","account_name","bank_name","bank_slug","account_currency"]

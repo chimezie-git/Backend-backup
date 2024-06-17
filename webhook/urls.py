@@ -2,5 +2,6 @@ from django.urls import path
 from webhook import views
 
 urlpatterns = [
-    path("temii/", views.TemiiWebhook.as_view(), name="temi_webhook"),
+    path("paystack/", views.PaystackWebhook.as_view(), name="paystack_webhook"),
+    path("gift_bills/", views.GiftBillsWebhook.as_view(), name="gift_bills_webhook"),
 ]

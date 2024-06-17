@@ -8,7 +8,7 @@ def buyAirtime(provider:str, number:str, amount:str, reference:str)->CustomRespo
     "provider": provider,
     "number": number,
     "amount": amount,
-    "reference": "GBR_2459392959593939"
+    "reference": reference
     }
     headers = {
         "Authorization": f"Bearer {keys.giftbills_api_key}",
@@ -17,16 +17,21 @@ def buyAirtime(provider:str, number:str, amount:str, reference:str)->CustomRespo
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-        if (not has_error) and ("error" in data):
-            error:dict = data['error']
-            message = f"{data['message']}:\n{list(error.values())[0][0]}"
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data|{"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Server Error"}
+    
+        # if (not has_error) and ("error" in data):
+        #     error:dict = (not data['error'])
+        #     message = f"{data['message']}:\n{list(error.values())[0][0]}"
+    return CustomResponse(code, data, has_error)
 
 def buyData(provider:str, number:str, plan_id:str, reference:str)->CustomResponse:
     url = f"{keys.giftbills_base_url}/internet/data"
@@ -34,7 +39,7 @@ def buyData(provider:str, number:str, plan_id:str, reference:str)->CustomRespons
     "provider": provider,
     "number": number,
     "plan_id": plan_id,
-    "reference": "GB_2459392959593939"
+    "reference": reference
     }
     headers = {
         "Authorization": f"Bearer {keys.giftbills_api_key}",
@@ -43,13 +48,17 @@ def buyData(provider:str, number:str, plan_id:str, reference:str)->CustomRespons
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data|{"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Server Error"}
+    return CustomResponse(code, data, has_error)
 
 def payBetting(provider:str, customer_id:str, amount:str, reference:str)->CustomResponse:
     url = f"{keys.giftbills_base_url}/betting/topup"
@@ -57,7 +66,7 @@ def payBetting(provider:str, customer_id:str, amount:str, reference:str)->Custom
     "provider": provider,
     "amount": amount,
     "customerId": customer_id,
-    "reference": "GB_2459392959593939"
+    "reference": reference
     }
     headers = {
         "Authorization": f"Bearer {keys.giftbills_api_key}",
@@ -66,13 +75,17 @@ def payBetting(provider:str, customer_id:str, amount:str, reference:str)->Custom
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data | {"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"message": "Server Error"}
+    return CustomResponse(code, data, has_error)
 
 def payElectricity(provider:str, number:str, amount:str, reference:str)->CustomResponse:
     url = f"{keys.giftbills_base_url}/electricity/recharge"
@@ -81,7 +94,7 @@ def payElectricity(provider:str, number:str, amount:str, reference:str)->CustomR
         "number": number,
         "amount": amount,
         "type": "prepaid",
-        "reference": "34392002",
+        "reference": reference,
     }
     headers = {
         "Authorization": f"Bearer {keys.giftbills_api_key}",
@@ -90,13 +103,17 @@ def payElectricity(provider:str, number:str, amount:str, reference:str)->CustomR
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data | {"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Server Error"}
+    return CustomResponse(code, data, has_error)
 
 def payCable(provider:str, number:str, plan_id:str, reference:str)->CustomResponse:
     url = f"{keys.giftbills_base_url}/tv/pay"
@@ -104,7 +121,7 @@ def payCable(provider:str, number:str, plan_id:str, reference:str)->CustomRespon
         "provider": provider,
         "number": number,
         "plan_id": plan_id,
-        "reference": "RE2324324"           
+        "reference": reference           
     }
     headers = {
         "Authorization": f"Bearer {keys.giftbills_api_key}",
@@ -113,13 +130,17 @@ def payCable(provider:str, number:str, plan_id:str, reference:str)->CustomRespon
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data | {"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Server Error"}
+    return CustomResponse(code, data, has_error)
 
 def sendBulkSMS(sender_name:str, message:str, numbers:list[str])->CustomResponse:
     url = f"{keys.giftbills_base_url}/send-sms"
@@ -136,16 +157,21 @@ def sendBulkSMS(sender_name:str, message:str, numbers:list[str])->CustomResponse
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    data = response.json()
+    data = dict()
     has_error = True
-    message = ""
-    if code == 200:
-        has_error = data['success']
-        message = data['message']
-    return CustomResponse(code, data, has_error, message)
+    try:
+        data = response.json()
+        message = data.pop("message")
+        data = data | {"msg": message}
+        if code == 200:
+            print(data)
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Server Error"}
+    return CustomResponse(code, data, has_error)
 
 
-buyAirtime("GLO", "234909", "f00", "")
+# buyAirtime("GLO", "234909", "f00", "")
 
 # buyData("MTN", "2349060309095", "2", "")
 

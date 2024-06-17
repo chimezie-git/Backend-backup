@@ -3,7 +3,9 @@ from datetime import datetime
 from random import randint
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
 from app_utils import secret_keys as keys
+
 
 
 def sendEmailCode(first_name:str, code:str, to:str)->bool:
@@ -21,10 +23,15 @@ Your Nitrobills team
                        [to])
     return result==1
 
+
 def sendSMSCode(phone_number:str, code:str):
+    """
+        send sms to phone number with otp code.
+        phone number format -> 2349012345678
+    """
     url = f"{keys.termii_base_url}/api/sms/send"
     payload = {
-            "to": phone_number,
+            "to": phone_number.replace('+', ''),
             "from": "Nitrobills",
             "sms": f"Your Nitrobills verification code is {code}. Dont share this with anyone",
             "type": "plain",
@@ -37,7 +44,7 @@ def sendSMSCode(phone_number:str, code:str):
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
     data = response.json()
-    print(data)
+    
     
 
 def generate_otp_code()->str:
@@ -49,11 +56,12 @@ def generate_otp_code()->str:
     return otp_code
 
 
-def is_valid(otp_time:datetime, minutes_valid=30)->bool:
-    now = datetime.now()
-
+def is_expired(otp_time, minutes_valid=30)->bool:
+    now = timezone.now()
+    print('--------------------')
+    print(otp_time)
     diff_day = now - otp_time
-    return diff_day.total_seconds()<=(60*minutes_valid)
+    return diff_day.total_seconds()>(60*minutes_valid)
 
 
-sendSMSCode("2349092202826", "223344")
+# sendSMSCode("2349092202826", "223344")
