@@ -18,6 +18,7 @@ from .serializers import (CustomRegisterSerializer, PasswordSerializer,
                           PhoneSerializer, UserDataSerializer,UserSerializer)
 from .models import CustomUser, UserData
 from app_utils import otp
+from app_utils import secret_keys as sKeys
 from app_utils.utils import getUserFromToken
 from app_utils.virtual_account import createAccount
 from app_utils.app_enums import TransactionStatus as tranStatus
@@ -47,6 +48,13 @@ def updateReferralCode(ref_code:str):
     if user_query.exists():
         user_query[0].data_user.add_referral()
 
+def getApiKeys()->dict:
+    return {
+        "giftbills_url":sKeys.giftbills_base_url,
+        "giftbills_secret": sKeys.giftbills_api_key,
+        "termii_url": sKeys.termii_base_url,
+        "termii_secret": sKeys.termii_api_key, 
+    }
 
 class CustomRegistrationsView(RegisterView):
     serializer_class = CustomRegisterSerializer
@@ -192,12 +200,13 @@ class GetUserDataView(GenericAPIView):
         user = getUserFromToken(request)
         user_data = UserDataSerializer(user.data_user).data
         custom_user_data = UserSerializer(user).data
+        api_secrets = {"secrets": getApiKeys()}
         bank_query = BankInfo.objects.filter(user=user)
         bank: BankInfo
         
         if bank_query.exists():
             bank = bank_query[0]
-            data = {"msg": "success"}|user_data|custom_user_data
+            data = {"msg": "success"}|user_data|custom_user_data|api_secrets
         else:
             response =createAccount(user.email, user.first_name, user.last_name,
                           user.phone_number,'test-bank')
@@ -206,7 +215,7 @@ class GetUserDataView(GenericAPIView):
                 bank.account_status = tranStatus.pending.value
             else:
                 bank.account_status = tranStatus.failed.value
-            data = response.data|user_data|custom_user_data
+            data = response.data|user_data|custom_user_data|api_secrets
         bank.save()
         data["bank"] = BankInfoSerializer(bank).data
         return Response(data, status=status.HTTP_200_OK)
