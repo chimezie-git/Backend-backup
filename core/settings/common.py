@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "bills.apps.BillsConfig",
     "web.apps.WebConfig",
+    "webhook.apps.WebhookConfig",
+    "transaction.apps.TransactionConfig", 
 ]
 
 MIDDLEWARE = [

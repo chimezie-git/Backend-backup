@@ -12,5 +12,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         user.phone_number = data.get('phone_number')
         user.otp_code = data.get('otp_code')
         user.otp_time = data.get('otp_time')
+        user.referral_code = data.get('referral_code')
         user.save()
         return user
