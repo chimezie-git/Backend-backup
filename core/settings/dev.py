@@ -11,19 +11,19 @@ CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:8000", "http://127.0.0.1:64917"]
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "example.com"]
 
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.getenv("EX_DB_URL"),
-#         conn_max_age=600
-#     )
-# }
-
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': dj_database_url.config(
+        default=os.getenv("EX_DB_URL"),
+        conn_max_age=600
+    )
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 
 if DEBUG:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
