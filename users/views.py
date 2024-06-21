@@ -97,8 +97,11 @@ class CustomRegistrationsView(RegisterView):
             return Response(data, status=status.HTTP_204_NO_CONTENT, headers=headers)
 
     def create(self, request, *args, **kwargs):
+        print("user created")
         serializer = self.get_serializer(data=request.data)
+        print("serialzer validation")
         serializer.is_valid(raise_exception=True)
+        print("create user")
         user: CustomUser = self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         data = self.get_response_data(user)
