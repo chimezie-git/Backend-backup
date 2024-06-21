@@ -99,7 +99,6 @@ class CustomRegistrationsView(RegisterView):
         user: CustomUser = self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         data = self.get_response_data(user)
-        UserData.objects.create(user=user)
         # login
         if (not data):
             data = dict()
