@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     "bills.apps.BillsConfig",
     "web.apps.WebConfig",
     "webhook.apps.WebhookConfig",
-    "transaction.apps.TransactionConfig", 
+    "transaction.apps.TransactionConfig",
 ]
 
 MIDDLEWARE = [
@@ -120,7 +120,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ],
-    "DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -132,3 +132,4 @@ SPECTACULAR_SETTINGS = {
 ACCOUNT_ADAPTER = 'users.adapter.CustomAccountAdapter'
 AUTH_USER_MODEL = "users.CustomUser"
 SITE_ID = 1
+CONFIRM_EMAIL_ON_GET = True

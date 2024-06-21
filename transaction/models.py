@@ -13,15 +13,20 @@ class Transaction(models.Model):
     amount = models.DecimalField(max_digits=10, default=0, decimal_places=2)
     reciever_number = models.CharField(max_length=20)
 
+
 class Beneficiaries(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     name = models.CharField(max_length=250)
     transaction_type = models.CharField(max_length=2, default='')
     provider = models.CharField(max_length=12, default='')
-    last_payment = models.OneToOneField(Transaction, on_delete=models.CASCADE, related_name="beneficiary_transaction", null=True)
+    user_code = models.CharField(max_length=50, default='')
+    last_payment = models.OneToOneField(
+        Transaction, on_delete=models.CASCADE, related_name="beneficiary_transaction", null=True)
+
 
 class BankInfo(models.Model):
-    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE, related_name='user_bank')
+    user = models.OneToOneField(
+        get_user_model(), on_delete=models.CASCADE, related_name='user_bank')
     amount = models.DecimalField(max_digits=10, default=0, decimal_places=2)
     customer_id = models.IntegerField(default=0)
     customer_code = models.CharField(max_length=25, default="")
@@ -35,7 +40,7 @@ class BankInfo(models.Model):
     def debit(self, amount):
         self.amount = self.amount-amount
         self.save()
-    
+
     def credit(self, amount):
         self.amount = self.amount+amount
         self.save()

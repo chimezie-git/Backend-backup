@@ -1,7 +1,8 @@
 ### Commands
 creates tables for apps without migrations
 ```
-python manage.py migrate --run-syncdb 
+python manage.py migrate --run-syncdb
+python manage.py migrate --fake <app-name> 
 ```
 
 ### Production environment vairables
