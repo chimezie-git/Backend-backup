@@ -163,8 +163,8 @@ class FundBettingApI(GenericAPIView):
         ref = generateRef(user)
         result = payBetting(provider, customer_id, amount, ref)
         if result.is_success():
-            tran = saveTransaction(user, ref, f"{amount}", f"{tType.betting.value}|{
-                provider}", customer_id, id=id)
+            tran = saveTransaction(user, ref, f"{amount}",
+                                   f"{tType.betting.value}|{provider}", customer_id, id=id)
             json = result.data | {
                 "transaction": TransactionDetailSerializer(tran).data}
             return Response(json, status=status.HTTP_200_OK)
