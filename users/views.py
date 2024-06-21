@@ -102,8 +102,10 @@ class CustomRegistrationsView(RegisterView):
         print("serialzer validation")
         serializer.is_valid(raise_exception=True)
         print("create user")
-        user: CustomUser = self.perform_create(serializer)
+        user = self.perform_create(serializer)
+        print("get access handlers")
         headers = self.get_success_headers(serializer.data)
+        print("get response data")
         data = self.get_response_data(user)
         # login
         if (not data):
