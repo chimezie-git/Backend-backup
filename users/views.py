@@ -32,13 +32,14 @@ from transaction.serializer import BankInfoSerializer
 
 
 def sendOtpSMS(user):
-    if settings.DEBUG:
-        print("------------OTP Sent To ------------")
-        print(f"phone:{user.phone_number} otp: {
-              user.otp_code} date:{user.otp_time}")
-        print("--------------------------")
-    else:
-        otp.sendSMSCode(user.phone_number, user.otp_code)
+    otp.sendSMSCode(user.phone_number, user.otp_code)
+    # if settings.DEBUG:
+    #     print("------------OTP Sent To ------------")
+    #     print(f"phone:{user.phone_number} otp: {
+    #           user.otp_code} date:{user.otp_time}")
+    #     print("--------------------------")
+    # else:
+    #     otp.sendSMSCode(user.phone_number, user.otp_code)
 
 
 def sendOtpEmail(user):
