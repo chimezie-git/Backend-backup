@@ -32,7 +32,10 @@ from transaction.serializer import BankInfoSerializer
 
 
 def sendOtpSMS(user):
-    otp.sendSMSCode(user.phone_number, user.otp_code)
+    try:
+        otp.sendSMSCode(user.phone_number, user.otp_code)
+    finally:
+        pass
     # if settings.DEBUG:
     #     print("------------OTP Sent To ------------")
     #     print(f"phone:{user.phone_number} otp: {
@@ -104,10 +107,22 @@ class CustomRegistrationsView(RegisterView):
             data = dict()
         response = self.__login(request, user, serializer, headers, data)
         # send otp message
+        try:
+            print(request.data)
+        finally:
+            pass
         if len(user.referral_code) > 0:
             updateReferralCode(user.referral_code)
-        user.otp_code = otp.generate_otp_code()
-        user.referral_code = generateReferralCode(user)
+        try:
+            user.otp_code = otp.generate_otp_code()
+        except:
+            Response({"msg": "otp generation failed"},
+                     status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user.referral_code = generateReferralCode(user)
+        except:
+            Response({"msg": "otp generation failed"},
+                     status=status.HTTP_400_BAD_REQUEST)
         user.save()
         # create user data
         sendOtpSMS(user)
