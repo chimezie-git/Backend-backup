@@ -30,6 +30,8 @@ from app_utils.app_enums import TransactionStatus as tranStatus
 from transaction.models import BankInfo
 from transaction.serializer import BankInfoSerializer
 
+from dj_rest_auth.app_settings import api_settings
+
 
 def sendOtpSMS(user):
     try:
@@ -47,6 +49,12 @@ def sendOtpSMS(user):
 
 def sendOtpEmail(user):
     otp.sendEmailCode(user.first_name, user.otp_code, user.email)
+
+
+def sendEmailVerification(request, email: str):
+    email_address = EmailAddress.objects.get(email=email)
+    emac = EmailConfirmationHMAC(email_address=email_address)
+    emac.send(request, signup=True)
 
 
 def generateReferralCode(user) -> str:
@@ -77,15 +85,7 @@ class CustomRegistrationsView(RegisterView):
     def __login(self, request, user, n_serializer, headers, data):
         serializer_class = api_settings.TOKEN_SERIALIZER
         token_model = get_token_model()
-        # create token
-        if api_settings.USE_JWT:
-            access_token, refresh_token = jwt_encode(user)
-        elif token_model:
-            token = api_settings.TOKEN_CREATOR(token_model, user, n_serializer)
-
-        if api_settings.SESSION_LOGIN:
-            auth_login(request, user)
-
+        token = api_settings.TOKEN_CREATOR(token_model, user, n_serializer)
         if token:
             serializer = serializer_class(
                 instance=token,
@@ -97,13 +97,11 @@ class CustomRegistrationsView(RegisterView):
             return Response(data, status=status.HTTP_204_NO_CONTENT, headers=headers)
 
     def create(self, request, *args, **kwargs):
-        print("user created")
         serializer = self.get_serializer(data=request.data)
-        print("serialzer validation")
         serializer.is_valid(raise_exception=True)
-        print("create user")
-        user = self.perform_create(serializer)
-        print("get access handlers")
+        user = serializer.save(self.request)
+        # user = self.perform_create(serializer)
+        UserData.objects.create(user=user)
         headers = self.get_success_headers(serializer.data)
         print("get response data")
         data = self.get_response_data(user)
@@ -112,25 +110,18 @@ class CustomRegistrationsView(RegisterView):
             data = dict()
         response = self.__login(request, user, serializer, headers, data)
         # send otp message
-        try:
-            print(request.data)
-        finally:
-            pass
         if len(user.referral_code) > 0:
             updateReferralCode(user.referral_code)
-        try:
-            user.otp_code = otp.generate_otp_code()
-        except:
-            Response({"msg": "otp generation failed"},
-                     status=status.HTTP_400_BAD_REQUEST)
-        try:
-            user.referral_code = generateReferralCode(user)
-        except:
-            Response({"msg": "otp generation failed"},
-                     status=status.HTTP_400_BAD_REQUEST)
+
+        user.otp_code = otp.generate_otp_code()
+        user.referral_code = generateReferralCode(user)
         user.save()
         # create user data
-        sendOtpSMS(user)
+        try:
+            sendEmailVerification(request, user.email)
+            sendOtpSMS(user)
+        except:
+            pass
         return response
 
 
@@ -279,9 +270,7 @@ class ResendVerifyEmail(GenericAPIView):
     def post(self, request, *args, **kwargs):
         try:
             user = getUserFromToken(request)
-            email_address = EmailAddress.objects.get(email=user.email)
-            emac = EmailConfirmationHMAC(email_address=email_address)
-            emac.send(request, signup=True)
+            sendEmailVerification(request, user.email)
             response = {'msg': 'Email verification sent'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
         except:
