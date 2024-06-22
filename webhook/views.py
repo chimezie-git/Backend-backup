@@ -8,39 +8,39 @@ from transaction.models import BankInfo, Transaction
 from app_utils.app_enums import TransactionStatus as tranStat
 
 
-def updateTransferStatus(json:dict, created:bool):
+def updateTransferStatus(json: dict, created: bool):
     email = json["customer"]["email"]
     # user = CustomUser.objects.get(email=email)
 
 
-def updateAccoutStatus(json:dict, created:bool):
+def updateAccoutStatus(json: dict, created: bool):
     email = json["customer"]["email"]
     user = CustomUser.objects.get(email=email)
     bank_query = BankInfo.objects.filter(user=user)
-    bank:BankInfo
+    bank: BankInfo
     if bank_query.exists():
         bank = bank_query[0]
     else:
         bank = BankInfo(user=user)
     if created:
         bank.amount = 0,
-        bank.customer_id= json["customer"]["id"],
-        bank.customer_code=json["customer"]["customer_code"],
-        bank.account_status= tranStat.success.value,
-        bank.account_number=  json["dedicated_account"]["account_number"],
+        bank.customer_id = json["customer"]["id"],
+        bank.customer_code = json["customer"]["customer_code"],
+        bank.account_status = tranStat.success.value,
+        bank.account_number = json["dedicated_account"]["account_number"],
         bank.account_name = json["dedicated_account"]["account_name"],
         bank.bank_name = json["dedicated_account"]["bank"]["name"],
         bank.bank_slug = json["dedicated_account"]["bank"]["slug"],
         bank.account_currency = json["dedicated_account"]["currency"],
     else:
         bank.amount = 0,
-        bank.customer_id= json["customer"]["id"],
-        bank.customer_code=json["customer"]["customer_code"],
-        bank.account_status= tranStat.failed.value,
+        bank.customer_id = json["customer"]["id"],
+        bank.customer_code = json["customer"]["customer_code"],
+        bank.account_status = tranStat.failed.value,
     bank.save()
 
 
-def updatePaystack(json:dict):
+def updatePaystack(json: dict):
     if "event" in json.keys():
         if json["event"] == "dedicatedaccount.assign.failed":
             updateAccoutStatus(json["data"], False)
@@ -53,15 +53,14 @@ def updatePaystack(json:dict):
         elif json["event"] == "transfer.reversed":
             updateTransferStatus(json["data"], False)
 
-    
 
 def _refundBillAmount(user, amount):
     user.user_bank.credit(amount)
-    
 
-def updateGiftBills(json:dict):
-    success = ["delivered","successful", "success"]
-    fail = ["fail","failed", "error"]
+
+def updateGiftBills(json: dict):
+    success = ["delivered", "successful", "success"]
+    fail = ["fail", "failed", "error"]
     if "event" in json.keys():
         ref = json["reference"]
         tran_query = Transaction.objects.filter(reference=ref)
@@ -77,22 +76,25 @@ def updateGiftBills(json:dict):
             else:
                 tran_status = tranStat.pending
             tran.status = tran_status.value
-            
+
 
 class GiftBillsWebhook(GenericAPIView):
     permission_classes = (AllowAny,)
+
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
         updateGiftBills(body)
-        data = {"response":"success"}
+        data = {"response": "success"}
         return Response(data, status=status.HTTP_200_OK)
 
 
 class PaystackWebhook(GenericAPIView):
     permission_classes = (AllowAny,)
+
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
+        print(body)
         updatePaystack(body)
         return Response(status=status.HTTP_200_OK)
