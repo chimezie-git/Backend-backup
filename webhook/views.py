@@ -27,17 +27,18 @@ def updateAccoutStatus(json: dict, created: bool):
         pass
     elif created:
         print("create dedicated virtual account")
-        bank.amount = 0,
-        bank.customer_id = int(json["customer"]["id"]),
-        bank.customer_code = json["customer"]["customer_code"],
-        bank.account_status = tranStat.success.value,
-        bank.account_number = json["dedicated_account"]["account_number"],
-        bank.account_name = json["dedicated_account"]["account_name"],
-        bank.bank_name = json["dedicated_account"]["bank"]["name"],
-        bank.bank_slug = json["dedicated_account"]["bank"]["slug"],
-        bank.account_currency = json["dedicated_account"]["currency"],
-        print("bank currency")
-        bank.save()
+        bank.delete()
+        print("deleted previous account")
+        BankInfo.objects.create(user=user,
+                                amount=0,
+                                customer_id=int(json["customer"]["id"]),
+                                customer_code=json["customer"]["customer_code"],
+                                account_status=tranStat.success.value,
+                                account_number=json["dedicated_account"]["account_number"],
+                                account_name=json["dedicated_account"]["account_name"],
+                                bank_name=json["dedicated_account"]["bank"]["name"],
+                                bank_slug=json["dedicated_account"]["bank"]["slug"],
+                                account_currency=json["dedicated_account"]["currency"],)
         print("save after success")
     else:
         print("failed dedicated virtual account")
