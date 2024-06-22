@@ -110,9 +110,14 @@ class PaystackWebhook(GenericAPIView):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
-        print('----------------')
-        print(type(body))
-        data = loadData(f"{body}")
+        data: dict
+        if type(body) == bytes:
+            string_val = body.decode("utf-8")
+            data = loadData(string_val)
+        elif type(body) == str:
+            data = loadData(body)
+        else:
+            data = body
         print('data loaded')
         updatePaystack(data)
         return Response(status=status.HTTP_200_OK)
