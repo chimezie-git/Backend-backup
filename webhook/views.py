@@ -10,6 +10,7 @@ from app_utils.app_enums import TransactionStatus as tranStat
 
 
 def loadData(data) -> dict:
+    print("loading data")
     return json_loader.loads(data)
 
 
@@ -54,6 +55,7 @@ def updateAccoutStatus(json: dict, created: bool):
 
 
 def updatePaystack(json: dict):
+    print("pastack method")
     if "event" in json.keys():
         if json["event"] == "dedicatedaccount.assign.failed":
             updateAccoutStatus(json["data"], False)
@@ -108,6 +110,9 @@ class PaystackWebhook(GenericAPIView):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
+        print('----------------')
+        print(type(body))
         data = loadData(f"{body}")
+        print('data loaded')
         updatePaystack(data)
         return Response(status=status.HTTP_200_OK)
