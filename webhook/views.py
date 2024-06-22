@@ -1,3 +1,4 @@
+import datetime
 import json as json_loader
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -15,16 +16,18 @@ def loadData(data) -> dict:
 
 
 def updatePaystackTransferStatus(json: dict):
+    print("update payment method called")
     email = json["customer"]["email"]
     reference = json["reference"]
     amount = json["amount"]
     paid_at = json["paid_at"]
     date = parse_datetime(paid_at)
     user = CustomUser.objects.get(email=email)
+    print("start creating transaction")
     Transaction.objects.create(
         user=user,
         reference=reference,
-        date=date,
+        date=datetime.datetime.now(),
         status=tranStat.success.value,
         is_credit=True,
         transaction_type=tranType.deposit.value,
@@ -32,6 +35,8 @@ def updatePaystackTransferStatus(json: dict):
         amount=amount,
         reciever_number=''
     )
+    print("update user credit")
+    user.user_bank.credit(amount)
     print("Transaction saved")
 
 
