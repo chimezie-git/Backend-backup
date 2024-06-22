@@ -300,6 +300,6 @@ class GetUserDataView(GenericAPIView):
             else:
                 bank.account_status = tranStatus.failed.value
             data = response.data | user_data | custom_user_data | api_secrets
-        bank.save()
+            bank.save()
         data["bank"] = BankInfoSerializer(bank).data
         return Response(data, status=status.HTTP_200_OK)

@@ -21,12 +21,7 @@ def updateTransferStatus(json: dict, created: bool):
 def updateAccoutStatus(json: dict, created: bool):
     email = json["customer"]["email"]
     user = CustomUser.objects.get(email=email)
-    bank_query = BankInfo.objects.filter(user=user)
-    bank: BankInfo
-    if bank_query.exists():
-        bank = bank_query[0]
-    else:
-        bank = BankInfo.objects.create(user=user, account_status='P')
+    bank = BankInfo.objects.get(user=user)
     if bank.account_status == tranStat.success.value:
         print("dedicated virtual account already crated")
         pass
@@ -55,7 +50,6 @@ def updateAccoutStatus(json: dict, created: bool):
 
 
 def updatePaystack(json: dict):
-    print("pastack method")
     if "event" in json.keys():
         if json["event"] == "dedicatedaccount.assign.failed":
             updateAccoutStatus(json["data"], False)
