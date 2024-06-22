@@ -1,4 +1,4 @@
-import json
+import json as json_loader
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,6 +7,10 @@ from rest_framework.permissions import AllowAny
 from users.models import CustomUser
 from transaction.models import BankInfo, Transaction
 from app_utils.app_enums import TransactionStatus as tranStat
+
+
+def loadData(data) -> dict:
+    return json_loader.loads(data)
 
 
 def updateTransferStatus(json: dict, created: bool):
@@ -28,7 +32,7 @@ def updateAccoutStatus(json: dict, created: bool):
         bank = BankInfo(user=user)
     if bank.account_status == tranStat.success.value:
         pass
-    elif created:
+    if created:
         print("creating bank info")
         bank.amount = 0,
         bank.customer_id = int(json["customer"]["id"]),
