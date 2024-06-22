@@ -6,16 +6,33 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from users.models import CustomUser
 from transaction.models import BankInfo, Transaction
-from app_utils.app_enums import TransactionStatus as tranStat
+from app_utils.app_enums import TransactionStatus as tranStat, TransactionType as tranType
+from django.utils.dateparse import parse_datetime
 
 
 def loadData(data) -> dict:
     return json_loader.loads(data)
 
 
-def updateTransferStatus(json: dict, created: bool):
+def updatePaystackTransferStatus(json: dict):
     email = json["customer"]["email"]
-    # user = CustomUser.objects.get(email=email)
+    reference = json["reference"]
+    amount = json["amount"]
+    paid_at = json["paid_at"]
+    date = parse_datetime(paid_at)
+    user = CustomUser.objects.get(email=email)
+    Transaction.objects.create(
+        user=user,
+        reference=reference,
+        date=date,
+        status=tranStat.success.value,
+        is_credit=True,
+        transaction_type=tranType.deposit.value,
+        provider='',
+        amount=amount,
+        reciever_number=''
+    )
+    print("Transaction saved")
 
 
 def updateAccoutStatus(json: dict, created: bool):
@@ -26,9 +43,7 @@ def updateAccoutStatus(json: dict, created: bool):
         print("dedicated virtual account already crated")
         pass
     elif created:
-        print("create dedicated virtual account")
         bank.delete()
-        print("deleted previous account")
         BankInfo.objects.create(user=user,
                                 amount=0,
                                 customer_id=int(json["customer"]["id"]),
@@ -39,15 +54,14 @@ def updateAccoutStatus(json: dict, created: bool):
                                 bank_name=json["dedicated_account"]["bank"]["name"],
                                 bank_slug=json["dedicated_account"]["bank"]["slug"],
                                 account_currency=json["dedicated_account"]["currency"],)
-        print("save after success")
+        print("save after creating dedicated account")
     else:
-        print("failed dedicated virtual account")
         bank.amount = 0,
         bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.failed.value,
         bank.save()
-        print("save after fail")
+        print("save after dedicated account fail")
 
 
 def updatePaystack(json: dict):
@@ -56,10 +70,8 @@ def updatePaystack(json: dict):
             updateAccoutStatus(json["data"], False)
         elif json["event"] == "dedicatedaccount.assign.success":
             updateAccoutStatus(json["data"], True)
-        else:
-            print(json)
-        # elif json["event"] == "transfer.success":
-        #     updateTransferStatus(json["data"], True)
+        elif json["event"] == "charge.success":
+            updatePaystackTransferStatus(json["data"])
         # elif json["event"] == "transfer.failed":
         #     updateTransferStatus(json["data"], False)
         # elif json["event"] == "transfer.reversed":
@@ -118,3 +130,15 @@ class PaystackWebhook(GenericAPIView):
         updatePaystack(data)
 
         return Response(status=status.HTTP_200_OK)
+
+# {'event': 'charge.success', 'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None, 'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank', 'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]}, 'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None, 'authorization': {'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'}, 'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None}, 'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}}
+
+
+# {'event': 'charge.success',
+#   'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None,
+#            'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank',
+#                         'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]},
+#                         'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None,
+#                         'authorization': {'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'},
+#                         'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None},
+#                         'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}}
