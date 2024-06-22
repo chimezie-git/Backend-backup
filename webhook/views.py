@@ -10,7 +10,6 @@ from app_utils.app_enums import TransactionStatus as tranStat
 
 
 def loadData(data) -> dict:
-    print("loading data")
     return json_loader.loads(data)
 
 
@@ -27,37 +26,32 @@ def updateAccoutStatus(json: dict, created: bool):
     if bank_query.exists():
         bank = bank_query[0]
     else:
-        bank = BankInfo(user=user)
+        bank = BankInfo.objects.create(user=user, account_status='P')
     if bank.account_status == tranStat.success.value:
+        print("dedicated virtual account already crated")
         pass
     elif created:
-        print(json)
-        print("creating bank info")
+        print("create dedicated virtual account")
         bank.amount = 0,
         bank.customer_id = int(json["customer"]["id"]),
-        print("customer id")
         bank.customer_code = json["customer"]["customer_code"],
-        print("customer code")
         bank.account_status = tranStat.success.value,
-        print("customer tran Stat")
         bank.account_number = json["dedicated_account"]["account_number"],
-        print("account number")
         bank.account_name = json["dedicated_account"]["account_name"],
-        print("account name")
         bank.bank_name = json["dedicated_account"]["bank"]["name"],
-        print("bank name")
         bank.bank_slug = json["dedicated_account"]["bank"]["slug"],
-        print("bank slug")
         bank.account_currency = json["dedicated_account"]["currency"],
         print("bank currency")
         bank.save()
-        print("save")
+        print("save after success")
     else:
+        print("failed dedicated virtual account")
         bank.amount = 0,
         bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.failed.value,
         bank.save()
+        print("save after fail")
 
 
 def updatePaystack(json: dict):
