@@ -1,4 +1,4 @@
-import datetime
+import time
 import json as json_loader
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
@@ -11,33 +11,36 @@ from app_utils.app_enums import TransactionStatus as tranStat, TransactionType a
 from django.utils.dateparse import parse_datetime
 
 
+def generateRef(user: CustomUser) -> str:
+    millis = round(time.time()*1000)
+    return f"{user.first_name[0]}{user.last_name[0]}{millis}"
+
+
 def loadData(data) -> dict:
     return json_loader.loads(data)
 
 
 def updatePaystackTransferStatus(json: dict):
-    print("update payment method called")
     email = json["customer"]["email"]
     reference = json["reference"]
     amount = json["amount"]
     paid_at = json["paid_at"]
     date = parse_datetime(paid_at)
     user = CustomUser.objects.get(email=email)
-    print("start creating transaction")
+    tran_ref = generateRef(user)
     Transaction.objects.create(
         user=user,
-        reference=reference,
-        date=datetime.datetime.now(),
+        reference=tran_ref,
+        date=date,
         status=tranStat.success.value,
         is_credit=True,
         transaction_type=tranType.deposit.value,
         provider='',
         amount=amount,
-        reciever_number=''
+        reciever_number=reference
     )
-    print("update user credit")
     user.user_bank.credit(amount)
-    print("Transaction saved")
+    print(f"Deposit made by {user.first_name}")
 
 
 def updateAccoutStatus(json: dict, created: bool):
@@ -138,6 +141,9 @@ class PaystackWebhook(GenericAPIView):
 
 # {'event': 'charge.success', 'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None, 'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank', 'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]}, 'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None, 'authorization': {'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'}, 'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None}, 'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}}
 
+
+data = {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None, 'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank', 'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]}, 'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None, 'authorization': {
+    'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'}, 'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None}, 'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}
 
 # {'event': 'charge.success',
 #   'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None,

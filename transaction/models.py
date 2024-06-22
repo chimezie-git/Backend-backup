@@ -4,14 +4,14 @@ from django.db import models
 
 class Transaction(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
-    reference = models.CharField(max_length=10)
+    reference = models.CharField(max_length=20)
     date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=1)
     is_credit = models.BooleanField(default=False)
     transaction_type = models.CharField(max_length=2)
     provider = models.CharField(max_length=12)
     amount = models.DecimalField(max_digits=10, default=0, decimal_places=2)
-    reciever_number = models.CharField(max_length=20)
+    reciever_number = models.CharField(max_length=50)
 
 
 class Beneficiaries(models.Model):
