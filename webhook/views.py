@@ -56,12 +56,14 @@ def updatePaystack(json: dict):
             updateAccoutStatus(json["data"], False)
         elif json["event"] == "dedicatedaccount.assign.success":
             updateAccoutStatus(json["data"], True)
-        elif json["event"] == "transfer.success":
-            updateTransferStatus(json["data"], True)
-        elif json["event"] == "transfer.failed":
-            updateTransferStatus(json["data"], False)
-        elif json["event"] == "transfer.reversed":
-            updateTransferStatus(json["data"], False)
+        else:
+            print(json)
+        # elif json["event"] == "transfer.success":
+        #     updateTransferStatus(json["data"], True)
+        # elif json["event"] == "transfer.failed":
+        #     updateTransferStatus(json["data"], False)
+        # elif json["event"] == "transfer.reversed":
+        #     updateTransferStatus(json["data"], False)
 
 
 def _refundBillAmount(user, amount):
@@ -114,4 +116,5 @@ class PaystackWebhook(GenericAPIView):
         else:
             data = body
         updatePaystack(data)
+
         return Response(status=status.HTTP_200_OK)
