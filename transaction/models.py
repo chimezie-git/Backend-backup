@@ -46,4 +46,18 @@ class BankInfo(models.Model):
         self.save()
 
 
+class Autopayment(models.Model):
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="user_autopay")
+    last_payment = models.OneToOneField(
+        Transaction, on_delete=models.PROTECT, null=True, related_name="transaction_autopay")
+    name = models.CharField(max_length=50)
+    transaction_type = models.CharField(max_length=3)
+    service_provider = models.CharField(max_length=20)
+    number = models.CharField(max_length=50)
+    amount_plan = models.CharField(max_length=20)
+    period = models.CharField(max_length=2)
+    custom_days = models.IntegerField()
+    end_date = models.DateTimeField()
+
 # setup autopayments on the user's device

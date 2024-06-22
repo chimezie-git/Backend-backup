@@ -34,10 +34,8 @@ class ListBeneficiaries(GenericAPIView):
     def get(self, request, *args, **kwargs):
         try:
             user = getUserFromToken(request)
-            print("got user")
             beneficiaries = Beneficiaries.objects.filter(user=user)
             content = list()
-            print("got beneficiary list")
             for ben in beneficiaries:
                 ben_data = BeneficiaryDetailSerializer(ben).data
                 ben_trans = {"last_payment": None}

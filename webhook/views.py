@@ -1,3 +1,4 @@
+import json
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.response import Response
@@ -16,15 +17,21 @@ def updateTransferStatus(json: dict, created: bool):
 def updateAccoutStatus(json: dict, created: bool):
     email = json["customer"]["email"]
     user = CustomUser.objects.get(email=email)
+    print("got user")
     bank_query = BankInfo.objects.filter(user=user)
     bank: BankInfo
     if bank_query.exists():
+        print("bank info found")
         bank = bank_query[0]
     else:
+        print("bank info not found")
         bank = BankInfo(user=user)
-    if created:
+    if bank.account_status == tranStat.success.value:
+        pass
+    elif created:
+        print("creating bank info")
         bank.amount = 0,
-        bank.customer_id = json["customer"]["id"],
+        bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.success.value,
         bank.account_number = json["dedicated_account"]["account_number"],
@@ -32,12 +39,14 @@ def updateAccoutStatus(json: dict, created: bool):
         bank.bank_name = json["dedicated_account"]["bank"]["name"],
         bank.bank_slug = json["dedicated_account"]["bank"]["slug"],
         bank.account_currency = json["dedicated_account"]["currency"],
+
     else:
         bank.amount = 0,
-        bank.customer_id = json["customer"]["id"],
+        bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.failed.value,
     bank.save()
+    print("bank saved")
 
 
 def updatePaystack(json: dict):
@@ -95,6 +104,6 @@ class PaystackWebhook(GenericAPIView):
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
-        print(body)
-        updatePaystack(body)
+        data = loadData(f"{body}")
+        updatePaystack(data)
         return Response(status=status.HTTP_200_OK)
