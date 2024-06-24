@@ -94,3 +94,7 @@ class ChangeEmailSerializer(serializers.Serializer):
                     _('A user is already registered with this e-mail address.'),
                 )
         return email
+
+
+class EmptyFieldSerializer(serializers.Serializer):
+    pass

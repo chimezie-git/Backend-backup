@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Transaction, Beneficiaries, BankInfo
+from .models import Transaction, Beneficiaries, BankInfo, Notifications, Autopayment
 
 
 class TransactionDetailSerializer(serializers.ModelSerializer):
@@ -36,3 +36,23 @@ class BankInfoSerializer(serializers.ModelSerializer):
         model = BankInfo
         fields = ["id", "user", "amount", "customer_id", "customer_code", "account_status",
                   "account_number", "account_name", "bank_name", "bank_slug", "account_currency"]
+
+
+class CreateAutopaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Autopayment
+        fields = ["name", "transaction_type", "service_provider",
+                  "number", "amount_plan", "period", "custom_days", "end_date"]
+
+
+class AutopayDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Autopayment
+        fields = ["id", "name", "transaction_type", "service_provider",
+                  "number", "amount_plan", "period", "custom_days", "end_date"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notifications
+        fields = ['type', 'message']

@@ -15,3 +15,9 @@ class TransactionType(Enum):
     betting = 'bt'
     bulk_sms = 'bs'
     deposit = 'dt'
+
+
+class NotificationType(Enum):
+    deposit = 'D'
+    account_create = 'A'
+    transaction = 'T'

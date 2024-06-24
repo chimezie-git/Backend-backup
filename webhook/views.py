@@ -1,14 +1,21 @@
 import time
 import json as json_loader
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny
 from users.models import CustomUser
-from transaction.models import BankInfo, Transaction
-from app_utils.app_enums import TransactionStatus as tranStat, TransactionType as tranType
+from users.serializers import EmptyFieldSerializer
+from transaction.models import BankInfo, Transaction, Notifications
+from app_utils.app_enums import TransactionStatus as tranStat, TransactionType as tranType, NotificationType as notType
 from django.utils.dateparse import parse_datetime
+
+
+def createNotify(notifyType: notType, user: CustomUser, message: str):
+    Notifications.objects.create(
+        user=user, type=notifyType.value, message=message)
 
 
 def generateRef(user: CustomUser) -> str:
@@ -16,14 +23,10 @@ def generateRef(user: CustomUser) -> str:
     return f"{user.first_name[0]}{user.last_name[0]}{millis}"
 
 
-def loadData(data) -> dict:
-    return json_loader.loads(data)
-
-
 def updatePaystackTransferStatus(json: dict):
     email = json["customer"]["email"]
     reference = json["reference"]
-    amount = json["amount"]
+    amount = json["amount"]/100
     paid_at = json["paid_at"]
     date = parse_datetime(paid_at)
     user = CustomUser.objects.get(email=email)
@@ -62,6 +65,7 @@ def updateAccoutStatus(json: dict, created: bool):
                                 bank_name=json["dedicated_account"]["bank"]["name"],
                                 bank_slug=json["dedicated_account"]["bank"]["slug"],
                                 account_currency=json["dedicated_account"]["currency"],)
+        createNotify(notType.account_create)
         print("save after creating dedicated account")
     else:
         bank.amount = 0,
@@ -113,6 +117,7 @@ def updateGiftBills(json: dict):
 class GiftBillsWebhook(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(request=None, responses=EmptyFieldSerializer)
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
@@ -124,32 +129,18 @@ class GiftBillsWebhook(GenericAPIView):
 class PaystackWebhook(GenericAPIView):
     permission_classes = (AllowAny,)
 
+    @extend_schema(request=None, responses=EmptyFieldSerializer)
     @csrf_exempt
     def post(self, request, *args, **kwargs):
         body = request.body
         data: dict
         if type(body) == bytes:
             string_val = body.decode("utf-8")
-            data = loadData(string_val)
+            data = json_loader.loads(string_val)
         elif type(body) == str:
-            data = loadData(body)
+            data = json_loader.loads(data)
         else:
             data = body
         updatePaystack(data)
 
         return Response(status=status.HTTP_200_OK)
-
-# {'event': 'charge.success', 'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None, 'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank', 'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]}, 'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None, 'authorization': {'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'}, 'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None}, 'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}}
-
-
-data = {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None, 'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank', 'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]}, 'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None, 'authorization': {
-    'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'}, 'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None}, 'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}
-
-# {'event': 'charge.success',
-#   'data': {'id': 3905086041, 'domain': 'test', 'status': 'success', 'reference': '1719029802579ciwo524slxplykpf', 'amount': 200000, 'message': None, 'gateway_response': 'Approved', 'paid_at': '2024-06-22T04:16:42.000Z', 'created_at': '2024-06-22T04:16:42.000Z', 'channel': 'dedicated_nuban', 'currency': 'NGN', 'ip_address': None,
-#            'metadata': {'receiver_account_number': '1238176270', 'receiver_bank': 'Test Bank',
-#                         'custom_fields': [{'display_name': 'Receiver Account', 'variable_name': 'receiver_account_number', 'value': '1238176270'}, {'display_name': 'Receiver Bank', 'variable_name': 'receiver_bank', 'value': 'Test Bank'}]},
-#                         'fees_breakdown': None, 'log': None, 'fees': 2000, 'fees_split': None,
-#                         'authorization': {'authorization_code': 'AUTH_k1xm868dr8', 'bin': '008XXX', 'last4': 'X553', 'exp_month': '05', 'exp_year': '2024', 'channel': 'dedicated_nuban', 'card_type': 'transfer', 'bank': None, 'country_code': 'NG', 'brand': 'Managed Account', 'reusable': False, 'signature': None, 'account_name': None, 'sender_country': 'NG', 'sender_bank': None, 'sender_bank_account_number': 'XXXXXX4553', 'receiver_bank_account_number': '1238176270', 'receiver_bank': 'Test Bank'},
-#                         'customer': {'id': 171711586, 'first_name': 'Anthony', 'last_name': 'Aniobi', 'email': 'anthonyaniobi198@gmail.com', 'customer_code': 'CUS_hnd2kcehylblwkt', 'phone': '09092202826', 'metadata': {}, 'risk_action': 'default', 'international_format_phone': None},
-#                         'plan': {}, 'subaccount': {}, 'split': {}, 'order_id': None, 'paidAt': '2024-06-22T04:16:42.000Z', 'requested_amount': 200000, 'pos_transaction_data': None, 'source': None}}

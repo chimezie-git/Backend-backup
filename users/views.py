@@ -11,16 +11,14 @@ from rest_framework.generics import GenericAPIView
 from dj_rest_auth.registration.views import RegisterView
 from dj_rest_auth.models import get_token_model
 from dj_rest_auth.app_settings import api_settings
-from dj_rest_auth.utils import jwt_encode
 from allauth.account.models import EmailConfirmationHMAC, get_emailconfirmation_model
-from allauth.account.utils import send_email_confirmation
 from allauth.account.models import EmailAddress
-from allauth.account.adapter import get_adapter
-from django.contrib import messages
+from drf_spectacular.utils import extend_schema
 
 from .serializers import (CustomRegisterSerializer,
                           ConfirmOtpSerializer, EmailSerializer,
-                          PhoneSerializer, UserDataSerializer, UserSerializer, PasswordSerializer, ChangeEmailSerializer)
+                          PhoneSerializer, UserDataSerializer, UserSerializer,
+                          PasswordSerializer, ChangeEmailSerializer, EmptyFieldSerializer)
 from .models import CustomUser, UserData
 from app_utils import otp
 from app_utils import secret_keys as sKeys
@@ -266,6 +264,7 @@ class ChangeEmailView(GenericAPIView):
 class ResendVerifyEmail(GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=None, responses=EmptyFieldSerializer)
     def post(self, request, *args, **kwargs):
         try:
             user = getUserFromToken(request)
@@ -278,8 +277,10 @@ class ResendVerifyEmail(GenericAPIView):
 
 
 class GetUserDataView(GenericAPIView):
+    # serializer_class = None
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=None, responses=EmptyFieldSerializer)
     def get(self, request, *args, **kwargs):
         user = getUserFromToken(request)
         user_data = UserDataSerializer(user.data_user).data

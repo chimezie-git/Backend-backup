@@ -60,4 +60,9 @@ class Autopayment(models.Model):
     custom_days = models.IntegerField()
     end_date = models.DateTimeField()
 
-# setup autopayments on the user's device
+
+class Notifications(models.Model):
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="user_notification")
+    type = models.CharField(max_length=2)
+    message = models.TextField()
