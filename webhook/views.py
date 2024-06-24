@@ -43,6 +43,8 @@ def updatePaystackTransferStatus(json: dict):
         reciever_number=reference
     )
     user.user_bank.credit(amount)
+    createNotify(notType.deposit, user,
+                 f"N {amount} has been paid to your account")
     print(f"Deposit made by {user.first_name}")
 
 
@@ -65,13 +67,16 @@ def updateAccoutStatus(json: dict, created: bool):
                                 bank_name=json["dedicated_account"]["bank"]["name"],
                                 bank_slug=json["dedicated_account"]["bank"]["slug"],
                                 account_currency=json["dedicated_account"]["currency"],)
-        createNotify(notType.account_create)
+        createNotify(notType.account_create, user,
+                     "Your Account has been created!")
         print("save after creating dedicated account")
     else:
         bank.amount = 0,
         bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.failed.value,
+        createNotify(notType.account_create, user,
+                     "Failed to create account please contact support")
         bank.save()
         print("save after dedicated account fail")
 
