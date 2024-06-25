@@ -155,7 +155,12 @@ class ResendOTPView(GenericAPIView):
             user.otp_time = datetime.datetime.now()
             user.save()
             data = sendOtpSMS(user)
-            return Response(data, status=status.HTTP_200_OK)
+            msg: str = data["msg"]
+            msg_lower = msg.lower()
+            if "success" in msg_lower:
+                return Response(data, status=status.HTTP_200_OK)
+            else:
+                return Response({"msg": f"Otp Failed: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
         else:
             data = {"msg": "Phone number not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
