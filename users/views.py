@@ -31,17 +31,15 @@ from transaction.serializer import BankInfoSerializer
 from dj_rest_auth.app_settings import api_settings
 
 
-def sendOtpSMS(user):
+def sendOtpSMS(user) -> dict:
     if settings.DEBUG:
         print("------------OTP Sent To ------------")
         print(f"phone:{user.phone_number}")
         print(f" otp: {user.otp_code} date:{user.otp_time}")
         print("------------------------------------")
+        {"msg": "OTP Sent"}
     else:
-        try:
-            otp.sendSMSCode(user.phone_number, user.otp_code)
-        finally:
-            pass
+        return otp.sendSMSCode(user.phone_number, user.otp_code)
 
 
 def sendOtpEmail(user):
@@ -156,8 +154,7 @@ class ResendOTPView(GenericAPIView):
             user.otp_code = otp.generate_otp_code()
             user.otp_time = datetime.datetime.now()
             user.save()
-            sendOtpSMS(user)
-            data = {"msg": "OTP Sent"}
+            data = sendOtpSMS(user)
             return Response(data, status=status.HTTP_200_OK)
         else:
             data = {"msg": "Phone number not found"}

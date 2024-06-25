@@ -1,5 +1,4 @@
 import requests
-from datetime import datetime
 from random import randint
 from django.core.mail import send_mail
 from django.conf import settings
@@ -23,7 +22,7 @@ Your Nitrobills team
     return result == 1
 
 
-def sendSMSCode(phone_number: str, code: str):
+def sendSMSCode(phone_number: str, code: str) -> dict:
     """
         send sms to phone number with otp code.
         phone number format -> 2349012345678
@@ -42,7 +41,13 @@ def sendSMSCode(phone_number: str, code: str):
     }
     response = requests.request("POST", url, headers=headers, json=payload)
     code = response.status_code
-    # data = response.json()
+    message = dict()
+    try:
+        data = response.json()
+        message = {"msg": data["message"]}
+    except:
+        message = {"msg": f"Error {code}: failed to send otp message"}
+    return message
 
 
 def generate_otp_code() -> str:
