@@ -1,4 +1,5 @@
 import time
+from decimal import Decimal
 import json as json_loader
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
@@ -26,11 +27,13 @@ def generateRef(user: CustomUser) -> str:
 def updatePaystackTransferStatus(json: dict):
     email = json["customer"]["email"]
     reference = json["reference"]
-    amount = json["amount"]/100
+    print("saved amount")
+    amount = Decimal(json["amount"])/100
     paid_at = json["paid_at"]
     date = parse_datetime(paid_at)
     user = CustomUser.objects.get(email=email)
     tran_ref = generateRef(user)
+    print("saving transaction")
     Transaction.objects.create(
         user=user,
         reference=tran_ref,
@@ -42,6 +45,7 @@ def updatePaystackTransferStatus(json: dict):
         amount=amount,
         reciever_number=reference
     )
+    print("saved transaction")
     user.user_bank.credit(amount)
     createNotify(notType.deposit, user,
                  f"N {amount} has been paid to your account")
