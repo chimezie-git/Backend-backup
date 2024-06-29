@@ -1,9 +1,8 @@
 import datetime
 from django.shortcuts import render
-from django.contrib.auth import get_user_model, login as auth_login
+from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework import status
-from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -23,7 +22,7 @@ from .models import CustomUser, UserData
 from app_utils import otp
 from app_utils import secret_keys as sKeys
 from app_utils.utils import getUserFromToken
-from app_utils.virtual_account import createAccount
+from app_utils.virtual_account import createAccount, getBankInfo
 from app_utils.app_enums import TransactionStatus as tranStatus
 from transaction.models import BankInfo
 from transaction.serializer import BankInfoSerializer
@@ -295,9 +294,15 @@ class GetUserDataView(GenericAPIView):
             bank = bank_query[0]
             data = {"msg": "success"} | user_data | custom_user_data | api_secrets
         else:
+            bank_name: str
+            if sKeys.is_test_mode:
+                bank_name = 'test-bank'
+            else:
+                bank_name = getBankInfo()
             response = createAccount(user.email, user.first_name, user.last_name,
-                                     user.phone_number, 'test-bank')
-            bank = BankInfo(user=user)
+                                     user.phone_number, bank_name)
+            displayName = bank_name.replace("-", " ")
+            bank = BankInfo(user=user, bank_name=displayName.capitalize())
             if response.is_success():
                 bank.account_status = tranStatus.pending.value
             else:

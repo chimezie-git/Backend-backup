@@ -10,3 +10,5 @@ giftbills_base_url = os.getenv("GIFTBILLS_BASE_URL")
 giftbills_api_key = os.getenv("GIFTBILLS_API_KEY")
 
 paystack_secret_key = os.getenv("PAYSTACK_SECRET_KEY")
+
+is_test_mode: bool = os.getenv("TEST_MODE") == "true"
