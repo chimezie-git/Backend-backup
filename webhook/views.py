@@ -25,15 +25,15 @@ def generateRef(user: CustomUser) -> str:
 
 
 def updatePaystackTransferStatus(json: dict):
-    email = json["customer"]["email"]
+    email: str = json["customer"]["email"]
     reference = json["reference"]
     amount = Decimal(json["amount"])/100
     paid_at = json["paid_at"]
     date = parse_datetime(paid_at)
-    user = CustomUser.objects.get(email=email)
-    tran_ref = generateRef(user)
+    bankInfo = BankInfo.objects.get(email=email)
+    tran_ref = generateRef(bankInfo.user)
     Transaction.objects.create(
-        user=user,
+        user=bankInfo.user,
         reference=tran_ref,
         date=date,
         status=tranStat.success.value,
@@ -43,22 +43,21 @@ def updatePaystackTransferStatus(json: dict):
         amount=amount,
         reciever_number=reference
     )
-    user.user_bank.credit(amount)
-    createNotify(notType.deposit, user,
+    bankInfo.credit(amount)
+    createNotify(notType.deposit, bankInfo.user,
                  f"N {amount} has been paid to your account")
-    print(f"Deposit made by {user.first_name}")
+    print(f"Deposit made by {bankInfo.user.first_name}")
 
 
 def updateAccoutStatus(json: dict, created: bool):
     email = json["customer"]["email"]
-    user = CustomUser.objects.get(email=email)
-    bank = BankInfo.objects.get(user=user)
+    bank = BankInfo.objects.get(email=email)
     if bank.account_status == tranStat.success.value:
         print("dedicated virtual account already crated")
         pass
     elif created:
         bank.delete()
-        BankInfo.objects.create(user=user,
+        BankInfo.objects.create(user=bank.user,
                                 amount=0,
                                 customer_id=int(json["customer"]["id"]),
                                 customer_code=json["customer"]["customer_code"],
@@ -68,7 +67,7 @@ def updateAccoutStatus(json: dict, created: bool):
                                 bank_name=json["dedicated_account"]["bank"]["name"],
                                 bank_slug=json["dedicated_account"]["bank"]["slug"],
                                 account_currency=json["dedicated_account"]["currency"],)
-        createNotify(notType.account_create, user,
+        createNotify(notType.account_create, bank.user,
                      "Your Account has been created!")
         print("save after creating dedicated account")
     else:
@@ -76,7 +75,7 @@ def updateAccoutStatus(json: dict, created: bool):
         bank.customer_id = int(json["customer"]["id"]),
         bank.customer_code = json["customer"]["customer_code"],
         bank.account_status = tranStat.failed.value,
-        createNotify(notType.account_create, user,
+        createNotify(notType.account_create, bank.user,
                      "Failed to create account please contact support")
         bank.save()
         print("save after dedicated account fail")

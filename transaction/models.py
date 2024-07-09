@@ -20,13 +20,16 @@ class Beneficiaries(models.Model):
     transaction_type = models.CharField(max_length=2, default='')
     provider = models.CharField(max_length=12, default='')
     user_code = models.CharField(max_length=50, default='')
+    color_id = models.IntegerField(default=0)
+    avatar_id = models.IntegerField(default=0)
     last_payment = models.OneToOneField(
         Transaction, on_delete=models.CASCADE, related_name="beneficiary_transaction", null=True)
 
 
 class BankInfo(models.Model):
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name='user_bank')
+    email = models.EmailField()
     amount = models.DecimalField(max_digits=10, default=0, decimal_places=2)
     customer_id = models.IntegerField(default=0)
     customer_code = models.CharField(max_length=25, default="")

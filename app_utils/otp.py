@@ -61,8 +61,6 @@ def generate_otp_code() -> str:
 
 def is_expired(otp_time, minutes_valid=30) -> bool:
     now = timezone.now()
-    print('--------------------')
-    print(otp_time)
     diff_day = now - otp_time
     return diff_day.total_seconds() > (60*minutes_valid)
 

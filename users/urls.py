@@ -1,5 +1,6 @@
 from django.urls import path, re_path
-from dj_rest_auth.views import LoginView, LogoutView
+from dj_rest_auth.views import LogoutView
+from .login_view import LoginView
 from .views import (CustomRegistrationsView, ResendOTPView,
                     SendEmailOTP, ConfirmOTPView, GetUserDataView, ChangePasswordView,
                     ChangeEmailView, ResendVerifyEmail, confirm_email_view)

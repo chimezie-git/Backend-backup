@@ -10,16 +10,15 @@ from rest_framework.generics import GenericAPIView
 from dj_rest_auth.registration.views import RegisterView
 from dj_rest_auth.models import get_token_model
 from dj_rest_auth.app_settings import api_settings
-from allauth.account.models import EmailConfirmationHMAC, get_emailconfirmation_model
-from allauth.account.models import EmailAddress
 from drf_spectacular.utils import extend_schema
 
 from .serializers import (CustomRegisterSerializer,
                           ConfirmOtpSerializer, EmailSerializer,
                           PhoneSerializer, UserDataSerializer, UserSerializer,
-                          PasswordSerializer, ChangeEmailSerializer, EmptyFieldSerializer)
+                          PasswordSerializer, ChangeEmailSerializer, EmptyFieldSerializer,
+                          ChangePhoneNumberSerializer)
 from .models import CustomUser, UserData
-from app_utils import otp
+from app_utils import otp, encryption
 from app_utils import secret_keys as sKeys
 from app_utils.utils import getUserFromToken
 from app_utils.virtual_account import createAccount, getBankInfo
@@ -36,7 +35,7 @@ def sendOtpSMS(user) -> dict:
         print(f"phone:{user.phone_number}")
         print(f" otp: {user.otp_code} date:{user.otp_time}")
         print("------------------------------------")
-        {"msg": "OTP Sent"}
+        return {"msg": "OTP Sent"}
     else:
         return otp.sendSMSCode(user.phone_number, user.otp_code)
 
@@ -45,10 +44,13 @@ def sendOtpEmail(user):
     otp.sendEmailCode(user.first_name, user.otp_code, user.email)
 
 
-def sendEmailVerification(request, email: str):
-    email_address = EmailAddress.objects.get(email=email)
-    emac = EmailConfirmationHMAC(email_address=email_address)
-    emac.send(request, signup=True)
+def sendEmailVerification(request, user: CustomUser) -> bool:
+    current_site = request.get_host()
+    token = Token.objects.get(user=user).key
+    scheme = 'https' if request.is_secure() else 'http'
+    url = encryption.encrypt(token)
+    url = f"{scheme}:/{current_site}/api/auth/account-confirm-email/{url}/"
+    return encryption.sendEmailVerification(user.first_name, url, user.email)
 
 
 def generateReferralCode(user) -> str:
@@ -85,7 +87,8 @@ class CustomRegistrationsView(RegisterView):
                 instance=token,
                 context=self.get_serializer_context(),
             )
-            body_data = serializer.data | data
+            body_data = serializer.data | data | {
+                "username": user.username, "email": user.email}
             return Response(body_data, status=status.HTTP_201_CREATED, headers=headers)
         else:
             return Response(data, status=status.HTTP_204_NO_CONTENT, headers=headers)
@@ -112,7 +115,7 @@ class CustomRegistrationsView(RegisterView):
         user.save()
         # create user data
         try:
-            sendEmailVerification(request, user.email)
+            sendEmailVerification(request, user)
             sendOtpSMS(user)
         except:
             pass
@@ -121,25 +124,14 @@ class CustomRegistrationsView(RegisterView):
 
 def confirm_email_view(request, **kwargs):
     key = kwargs["key"]
-    model = get_emailconfirmation_model()
-    emailconfirmation = model.from_key(key)
-    if not emailconfirmation:
-        print("email confirmation null")
+    token: str = encryption.decrypt(key)
+    try:
+        user: CustomUser = Token.objects.get(key=token).user
+        user.email_verified = True
+        user.save()
+        return render(request, "confirm_email_success.html", {"user": user})
+    except:
         return render(request, "confirm_email_failed.html")
-    else:
-        id = emailconfirmation.email_address.user_id
-        user_query = CustomUser.objects.filter(id=id)
-        if user_query.exists():
-            print("user query exists")
-            user = user_query[0]
-            user.email_verified = True
-            user.save()
-            user.last_name
-            # return self.post(*args, **kwargs)
-            return render(request, "confirm_email_success.html", {"user": user})
-        else:
-            print("user query empty")
-            return render(request, "confirm_email_failed.html")
 
 
 class ResendOTPView(GenericAPIView):
@@ -269,9 +261,9 @@ class ResendVerifyEmail(GenericAPIView):
     def post(self, request, *args, **kwargs):
         try:
             user = getUserFromToken(request)
-            sendEmailVerification(request, user.email)
+            sendEmailVerification(request, user)
             response = {'msg': 'Email verification sent'}
-            return Response(response, status=status.HTTP_400_BAD_REQUEST)
+            return Response(response, status=status.HTTP_200_OK)
         except:
             response = {'msg': 'Email verification failed'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
@@ -283,31 +275,67 @@ class GetUserDataView(GenericAPIView):
 
     @extend_schema(request=None, responses=EmptyFieldSerializer)
     def get(self, request, *args, **kwargs):
-        user = getUserFromToken(request)
-        user_data = UserDataSerializer(user.data_user).data
-        custom_user_data = UserSerializer(user).data
-        api_secrets = {"secrets": getApiKeys()}
-        bank_query = BankInfo.objects.filter(user=user)
-        bank: BankInfo
+        try:
+            user = getUserFromToken(request)
+            user_data = UserDataSerializer(user.data_user).data
+            custom_user_data = UserSerializer(user).data
+            api_secrets = {"secrets": getApiKeys()}
+            bank_query = BankInfo.objects.filter(user=user)
+            data: dict
+            banks = []
+            if bank_query.exists():
+                for bk in bank_query:
+                    banks.append(BankInfoSerializer(bk).data)
+                data = {
+                    "msg": "success"} | user_data | custom_user_data | api_secrets
+            else:
+                bank_name: list
+                if sKeys.is_test_mode:
+                    bank_name = ['test-bank', 'test-bank']
+                else:
+                    bank_name = getBankInfo()
+                for idx in range(len(bank_name)):
+                    bk = bank_name[idx]
+                    email: str
+                    if idx == 0:
+                        email = user.email
+                    else:
+                        email_split = user.email.split("@")
+                        email_name = "".join(email_split)
+                        email = f"{email_name}@nitrobills.com"
+                    response = createAccount(email, user.first_name, user.last_name,
+                                             user.phone_number, bk)
+                    displayName = bk.replace("-", " ")
+                    bank = BankInfo(user=user, email=email,
+                                    bank_name=displayName.capitalize())
+                    if response.is_success():
+                        bank.account_status = tranStatus.pending.value
+                    else:
+                        bank.account_status = tranStatus.failed.value
+                    bank.save()
+                    banks.append(BankInfoSerializer(bank).data)
+                data = response.data | user_data | custom_user_data | api_secrets
+            data["banks"] = banks
+            return Response(data, status=status.HTTP_200_OK)
+        except:
+            return Response({"msg": "Error getting user data"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if bank_query.exists():
-            bank = bank_query[0]
-            data = {"msg": "success"} | user_data | custom_user_data | api_secrets
-        else:
-            bank_name: str
-            if sKeys.is_test_mode:
-                bank_name = 'test-bank'
+
+class ChangePhoneNumber(GenericAPIView):
+    serializer_class = ChangePhoneNumberSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            email = request.data["email"]
+            username = request.data["username"]
+            phone = request.data["phone_number"]
+            user = CustomUser.objects.get(email=email, username=username)
+            user_query = CustomUser.objects.filter(phone_number=phone)
+            if user_query.exists():
+                return Response({"phone": "Phone number already exists"}, status=status.HTTP_400_BAD_REQUEST)
             else:
-                bank_name = getBankInfo()
-            response = createAccount(user.email, user.first_name, user.last_name,
-                                     user.phone_number, bank_name)
-            displayName = bank_name.replace("-", " ")
-            bank = BankInfo(user=user, bank_name=displayName.capitalize())
-            if response.is_success():
-                bank.account_status = tranStatus.pending.value
-            else:
-                bank.account_status = tranStatus.failed.value
-            data = response.data | user_data | custom_user_data | api_secrets
-            bank.save()
-        data["bank"] = BankInfoSerializer(bank).data
-        return Response(data, status=status.HTTP_200_OK)
+                user.phone_number = phone
+                user.save()
+                return Response({"msg": "Phone number changed succesfully"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)

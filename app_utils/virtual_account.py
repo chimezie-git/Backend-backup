@@ -34,7 +34,7 @@ def createAccount(email: str, first_name: str, last_name: str, phone: str, bank:
     return CustomResponse(code, data, has_error)
 
 
-def getBankInfo() -> str:
+def getBankInfo() -> list:
     url = "https://api.paystack.co/dedicated_account/available_providers"
     headers = {
         "Authorization": f"Bearer {keys.paystack_secret_key}",
@@ -44,6 +44,8 @@ def getBankInfo() -> str:
     try:
         res_data = response.json()
         data = res_data["data"]
-        return data[0]["provider_slug"]
+        bank1 = data[0]["provider_slug"]
+        bank2 = data[1]["provider_slug"]
+        return [bank1, bank2]
     except:
         return "wema-bank"

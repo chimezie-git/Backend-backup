@@ -6,6 +6,7 @@ from allauth.socialaccount.models import EmailAddress
 from allauth.account import app_settings as allauth_account_settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from app_utils.utils import has_grace_period
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -37,22 +38,47 @@ class CustomRegisterSerializer(RegisterSerializer, serializers.ModelSerializer):
             'referral_code', '')
         return data_dict
 
+    def validate_username(self, username):
+        username_query = get_user_model().objects.filter(username=username)
+        if username_query.exists():
+            user: CustomUser = username_query[0]
+            if user.phone_verified:
+                raise serializers.ValidationError(
+                    "Username is already in use")
+            elif has_grace_period(user.date_joined):
+                raise serializers.ValidationError(
+                    "Username is already in use")
+            else:
+                user.delete()
+        return username
+
     def validate_email(self, email):
         email = get_adapter().clean_email(email)
         email_query = get_user_model().objects.filter(email=email)
-        if (email_query.exists()):
-            raise serializers.ValidationError("Email Address is already used")
-        if allauth_account_settings.UNIQUE_EMAIL:
-            if email and EmailAddress.objects.is_verified(email):
+        if email_query.exists():
+            user: CustomUser = email_query[0]
+            if user.phone_verified:
                 raise serializers.ValidationError(
-                    _('A user is already registered with this e-mail address.'),
-                )
+                    "Email address is already in use")
+            elif has_grace_period(user.date_joined):
+                raise serializers.ValidationError(
+                    "Email address is already in use")
+            else:
+                user.delete()
         return email
 
     def validate_phone_number(self, phone_number):
         phone_query = get_user_model().objects.filter(phone_number=phone_number)
         if (phone_query.exists()):
-            raise serializers.ValidationError("Phone Number is already in use")
+            user: CustomUser = phone_query[0]
+            if user.phone_verified:
+                raise serializers.ValidationError(
+                    "Phone Number is already in use")
+            elif has_grace_period(user.date_joined):
+                raise serializers.ValidationError(
+                    "Phone Number is already in use")
+            else:
+                user.delete()
         return phone_number
 
 
@@ -68,6 +94,12 @@ class PasswordSerializer(serializers.Serializer):
 
 class PhoneSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True)
+
+
+class ChangePhoneNumberSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=True)
 
 
 class EmailSerializer(serializers.Serializer):

@@ -16,25 +16,20 @@ class BeneficiaryDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Beneficiaries
         fields = ['id', "name", "user_code", "provider",
-                  "transaction_type", 'last_payment']
+                  "transaction_type", 'last_payment', "color_id", "avatar_id"]
 
 
 class CreateBeneficiarySerializer(serializers.ModelSerializer):
     class Meta:
         model = Beneficiaries
-        fields = ["name", "user_code", "provider", "transaction_type"]
-
-
-class UpdateBeneficiarySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Beneficiaries
-        fields = ["name", "transaction_type", "provider", "amount"]
+        fields = ["name", "user_code", "provider",
+                  "transaction_type", "color_id", "avatar_id"]
 
 
 class BankInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankInfo
-        fields = ["id", "user", "amount", "customer_id", "customer_code", "account_status",
+        fields = ["id", "user", "email", "amount", "customer_id", "customer_code", "account_status",
                   "account_number", "account_name", "bank_name", "bank_slug", "account_currency"]
 
 

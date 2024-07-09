@@ -72,8 +72,10 @@ class CreateBeneficiaryApiView(GenericAPIView):
             provider = request.data["provider"]
             trans_type = request.data["transaction_type"]
             user_code = request.data["user_code"]
+            color_id = request.data["color_id"]
+            avatar_id = request.data["avatar_id"]
             beneficiary = Beneficiaries(user=user, name=name, provider=provider,
-                                        transaction_type=trans_type, user_code=user_code)
+                                        transaction_type=trans_type, user_code=user_code, color_id=color_id, avatar_id=avatar_id)
             beneficiary.save()
 
             json = {"msg": "beneficiary saved"} | BeneficiaryDetailSerializer(
