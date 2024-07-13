@@ -85,7 +85,7 @@ class CustomRegisterSerializer(RegisterSerializer, serializers.ModelSerializer):
 class UserDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserData
-        fields = ['amount', 'referral_count']
+        fields = ['amount', 'referral_count', 'pin_code']
 
 
 class PasswordSerializer(serializers.Serializer):
@@ -106,9 +106,18 @@ class EmailSerializer(serializers.Serializer):
     email = serializers.CharField(required=True)
 
 
-class ConfirmOtpSerializer(serializers.Serializer):
+class ConfirmOtpPhoneSerializer(serializers.Serializer):
     otp_code = serializers.CharField(required=True)
     phone_number = serializers.CharField(required=True)
+
+
+class ConfirmOtpPinSerializer(serializers.Serializer):
+    otp_code = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+
+
+class ConfirmPinCodeSerializer(serializers.Serializer):
+    pin = serializers.CharField(required=True)
 
 
 class ChangeEmailSerializer(serializers.Serializer):

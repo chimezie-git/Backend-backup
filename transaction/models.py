@@ -40,10 +40,6 @@ class BankInfo(models.Model):
     bank_slug = models.CharField(max_length=50, default="")
     account_currency = models.CharField(max_length=50, default="")
 
-    def debit(self, amount):
-        self.amount = self.amount-amount
-        self.save()
-
     def credit(self, amount):
         self.amount = self.amount+amount
         self.save()

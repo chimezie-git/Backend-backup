@@ -12,8 +12,8 @@ from dj_rest_auth.models import get_token_model
 from dj_rest_auth.app_settings import api_settings
 from drf_spectacular.utils import extend_schema
 
-from .serializers import (CustomRegisterSerializer,
-                          ConfirmOtpSerializer, EmailSerializer,
+from .serializers import (CustomRegisterSerializer, ConfirmPinCodeSerializer,
+                          ConfirmOtpPhoneSerializer, ConfirmOtpPinSerializer, EmailSerializer,
                           PhoneSerializer, UserDataSerializer, UserSerializer,
                           PasswordSerializer, ChangeEmailSerializer, EmptyFieldSerializer,
                           ChangePhoneNumberSerializer)
@@ -35,7 +35,7 @@ def sendOtpSMS(user) -> dict:
         print(f"phone:{user.phone_number}")
         print(f" otp: {user.otp_code} date:{user.otp_time}")
         print("------------------------------------")
-        return {"msg": "OTP Sent"}
+        return {"msg": "OTP Sent Successfully"}
     else:
         return otp.sendSMSCode(user.phone_number, user.otp_code)
 
@@ -180,8 +180,8 @@ class SendEmailOTP(GenericAPIView):
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
-class ConfirmOTPView(GenericAPIView):
-    serializer_class = ConfirmOtpSerializer
+class ConfirmOTPPhoneView(GenericAPIView):
+    serializer_class = ConfirmOtpPhoneSerializer
 
     def post(self, request, *args, **kwargs):
         otp_code = request.data["otp_code"]
@@ -189,9 +189,11 @@ class ConfirmOTPView(GenericAPIView):
         user_query = get_user_model().objects.filter(phone_number=phone)
         if user_query.exists():
             user = user_query[0]
+            print(f"saved otp {user.otp_code}/")
+            print(f"current otp {otp_code}/")
             if otp.is_expired(user.otp_time):
-                data = {"msg": "OTP has expired resend a new code"}
-                return Response(data, status=status.HTTP_200_OK)
+                data = {"otp": "OTP has expired resend a new code"}
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
             if user.otp_code == otp_code:
                 user.phone_verified = True
                 user.save()
@@ -199,9 +201,71 @@ class ConfirmOTPView(GenericAPIView):
                 data = {"msg": "User Account Verified", "key": token}
                 return Response(data, status=status.HTTP_200_OK)
             else:
+                data = {"otp": "OTP incorrect"}
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            data = {"msg": "Phone number not found"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+class ConfirmOTPPinView(GenericAPIView):
+    serializer_class = ConfirmOtpPinSerializer
+
+    def post(self, request, *args, **kwargs):
+        otp_code = request.data["otp_code"]
+        email = request.data["email"]
+        user_query = get_user_model().objects.filter(email=email)
+        if user_query.exists():
+            user = user_query[0]
+            if otp.is_expired(user.otp_time):
+                data = {"msg": "OTP has expired resend a new code"}
+                return Response(data, status=status.HTTP_200_OK)
+            if user.otp_code == otp_code:
+                token = Token.objects.get(user=user).key
+                data = {"msg": "User Account Verified", "key": token}
+                return Response(data, status=status.HTTP_200_OK)
+            else:
                 data = {"msg": "OTP incorrect"}
                 return Response(data, status=status.HTTP_401_UNAUTHORIZED)
         else:
+            data = {"msg": "Phone number not found"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+class UpdatePinCodeView(GenericAPIView):
+    serializer_class = ConfirmPinCodeSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            pin = request.data["pin"]
+            user = getUserFromToken(request)
+            user_data: UserData = user.data_user
+            user_data.pin_code = pin
+            user_data.save()
+            data = {"msg": "pin changed"}
+            return Response(data, status=status.HTTP_200_OK)
+        except:
+            data = {"msg": "Phone number not found"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+class ConfirmPinView(GenericAPIView):
+    serializer_class = ConfirmPinCodeSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            pin = request.data["pin"]
+            user = getUserFromToken(request)
+            user_data: UserData = user.data_user
+            if user_data.pin_code == pin:
+                data = {"msg": "pin is correct"}
+                return Response(data, status=status.HTTP_200_OK)
+            else:
+                data = {"msg": "pin is incorrect"}
+                return Response(data, status=status.HTTP_404_NOT_FOUND)
+        except:
             data = {"msg": "Phone number not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
@@ -329,13 +393,33 @@ class ChangePhoneNumber(GenericAPIView):
             email = request.data["email"]
             username = request.data["username"]
             phone = request.data["phone_number"]
-            user = CustomUser.objects.get(email=email, username=username)
-            user_query = CustomUser.objects.filter(phone_number=phone)
+            user_query = CustomUser.objects.exclude(
+                email=email).filter(phone_number=phone)
             if user_query.exists():
                 return Response({"phone": "Phone number already exists"}, status=status.HTTP_400_BAD_REQUEST)
             else:
+                user = CustomUser.objects.get(email=email, username=username)
                 user.phone_number = phone
                 user.save()
                 return Response({"msg": "Phone number changed succesfully"}, status=status.HTTP_200_OK)
+        except:
+            return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgetPassword(GenericAPIView):
+    serializer_class = PhoneSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            phone = request.data["phone_number"]
+            user_query = CustomUser.objects.filter(phone_number=phone)
+            if user_query.exists():
+                user = user_query[0]
+                data = {
+                    "username": user.username, "email": user.email}
+                return Response(data, status=status.HTTP_200_OK)
+            else:
+                data = {"phone": "Phone number is not registered"}
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)

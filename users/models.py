@@ -15,6 +15,7 @@ class UserData(models.Model):
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE, related_name="data_user")
     amount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    pin_code = models.CharField(max_length=5)
     referral_count = models.IntegerField(default=0)
 
     def add_referral(self):

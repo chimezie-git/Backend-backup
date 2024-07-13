@@ -66,7 +66,9 @@ class LoginView(GenericAPIView):
         else:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        body_json = serializer.data | {"verified": self.user.phone_verified}
+        body_json = serializer.data | {"verified": self.user.phone_verified,
+                                       "email": self.user.email, "username": self.user.username,
+                                       "phone_number": self.user.phone_number}
         response = Response(body_json, status=status.HTTP_200_OK)
         return response
 

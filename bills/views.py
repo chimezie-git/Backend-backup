@@ -4,11 +4,12 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from bills.serializer import BillNumberSerializer, BillPlanSerializer, BulkSMSSerializer
+from app_utils import transactions
 from app_utils.bill_payment import buyAirtime, buyData, payBetting, sendBulkSMS, payCable, payElectricity
 from app_utils.utils import getUserFromToken
 from app_utils.app_enums import TransactionStatus, TransactionType as tType
 from users.models import CustomUser
-from transaction.models import Transaction, Beneficiaries, BankInfo
+from transaction.models import Transaction, Beneficiaries
 from transaction.serializer import TransactionDetailSerializer
 
 
@@ -17,8 +18,8 @@ def generateRef(user: CustomUser) -> str:
     return f"{user.first_name[0]}{user.last_name[0]}{millis}"
 
 
-def _debitUser(user, amount):
-    user.user_bank.debit(decimal.Decimal(amount))
+def _debitUser(user: CustomUser, amount) -> bool:
+    return transactions.debit(user, decimal.Decimal(amount))
 
 
 def saveTransaction(user: CustomUser,
@@ -39,7 +40,6 @@ def saveTransaction(user: CustomUser,
     tran.amount = decimal.Decimal(amount)
     tran.is_credit = False
     tran.save()
-    _debitUser(user, amount)
     if id != None:
         try:
             beneficiary = Beneficiaries.objects.get(id=id)
@@ -90,6 +90,8 @@ class BuyAirtimeApI(GenericAPIView):
         ref = generateRef(user)
         result = buyAirtime(provider, number, amount, ref)
         if result.is_success():
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             tran = saveTransaction(user, ref, f"{amount}",
                                    tType.airtime, provider, number, id=id)
             json = result.data | {
@@ -108,6 +110,8 @@ class BuyDataApI(GenericAPIView):
         ref = generateRef(user)
         result = buyData(provider, number, plan_id, ref)
         if result.is_success():
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             tran = saveTransaction(
                 user, ref, f"{amount}", tType.data, provider, int(plan_id), id=id)
             json = result.data | {
@@ -126,6 +130,8 @@ class PayElectricityApI(GenericAPIView):
         ref = generateRef(user)
         result = payElectricity(provider, number, amount, ref)
         if result.is_success():
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             tran = saveTransaction(
                 user, ref, f"{amount}", tType.electricity, provider, number, id=id)
             json = result.data | {
@@ -147,6 +153,8 @@ class PayCableApI(GenericAPIView):
         if result.is_success():
             tran = saveTransaction(user, ref, f"{amount}",
                                    tType.cable, provider, number, id=id)
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             json = result.data | {
                 "transaction": TransactionDetailSerializer(tran).data}
             return Response(json, status=status.HTTP_200_OK)
@@ -165,6 +173,8 @@ class FundBettingApI(GenericAPIView):
         if result.is_success():
             tran = saveTransaction(user, ref, f"{amount}",
                                    f"{tType.betting.value}|{provider}", customer_id, id=id)
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             json = result.data | {
                 "transaction": TransactionDetailSerializer(tran).data}
             return Response(json, status=status.HTTP_200_OK)
@@ -182,6 +192,8 @@ class SendBulkSmsApI(GenericAPIView):
         result = sendBulkSMS(sender_name, message, numbers)
         if result.is_success():
             amount = result.data["data"]["cost"]
+            if not _debitUser(user, amount):
+                return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             tran = saveTransaction(user, ref, f"{amount}",
                                    tType.bulk_sms, 'bulk_sms', '', id=id)
             json = result.data | {
