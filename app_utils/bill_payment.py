@@ -37,7 +37,15 @@ def buyAirtime(provider: str, number: str, amount: str, reference: str) -> Custo
     return CustomResponse(code, data, has_error)
 
 
-def buyData(provider: str, number: str, plan_id: str, reference: str) -> CustomResponse:
+def buyData(provider: str, number: str, plan_id: int, package_code: str, reference: str) -> CustomResponse:
+    # airtime_ng = ["mtn", "airtel", "9mobile", "glo"]
+    # if provider.lower() in airtime_ng:
+    #     return buyDataAirtimeNg(number, plan_id, package_code, reference)
+    # else:
+    return buyDataGiftBills(provider, number, plan_id, reference)
+
+
+def buyDataGiftBills(provider: str, number: str, plan_id: str, reference: str) -> CustomResponse:
     url = f"{keys.giftbills_base_url}/internet/data"
     payload = {
         "provider": provider,
@@ -62,6 +70,43 @@ def buyData(provider: str, number: str, plan_id: str, reference: str) -> CustomR
             has_error = (not data['success'])
     except:
         data = {"msg": __server_error_msg}
+    return CustomResponse(code, data, has_error)
+
+
+def buyDataAirtimeNg(number: str, plan_id: int, package_code: str, reference: str) -> CustomResponse:
+    url = f"{keys.airtime_ng_url}data"
+    payload: dict
+    if plan_id == -1:
+        payload = {
+            "phone": number,
+            "package_code": package_code,
+            "customer_reference": reference,
+        }
+    else:
+        payload = {
+            "phone": number,
+            "plan_id": plan_id,
+            "customer_reference": reference,
+        }
+    headers = {
+        "Authorization": f"Bearer {keys.airtime_ng_secret}",
+        'Content-Type': 'application/json',
+    }
+    response = requests.request("POST", url, headers=headers, json=payload)
+    code = response.status_code
+    data = dict()
+    has_error = True
+    try:
+        print(f"status code: {response.status_code}")
+        print(f"response string {str(response)}")
+        data = response.json()
+        print(f"data {response.json()}")
+        message = data.pop("message")
+        data = data | {"msg": message}
+        if code == 200:
+            has_error = (not data['success'])
+    except:
+        data = {"msg": "Airtime Ng Server error"}
     return CustomResponse(code, data, has_error)
 
 

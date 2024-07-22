@@ -72,6 +72,8 @@ def getApiKeys() -> dict:
         "giftbills_secret": sKeys.giftbills_api_key,
         "termii_url": sKeys.termii_base_url,
         "termii_secret": sKeys.termii_api_key,
+        "airtime_ng_secret": sKeys.airtime_ng_secret,
+        "airtime_ng_url": sKeys.airtime_ng_url
     }
 
 
@@ -219,14 +221,14 @@ class ConfirmOTPPinView(GenericAPIView):
             user = user_query[0]
             if otp.is_expired(user.otp_time):
                 data = {"msg": "OTP has expired resend a new code"}
-                return Response(data, status=status.HTTP_200_OK)
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
             if user.otp_code == otp_code:
                 token = Token.objects.get(user=user).key
                 data = {"msg": "User Account Verified", "key": token}
                 return Response(data, status=status.HTTP_200_OK)
             else:
-                data = {"msg": "OTP incorrect"}
-                return Response(data, status=status.HTTP_401_UNAUTHORIZED)
+                data = {"otp": "OTP incorrect"}
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
         else:
             data = {"msg": "Phone number not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)

@@ -12,6 +12,8 @@ urlpatterns = [
     # autopayment
     path("autopay/", views.ListAutopayApiView.as_view()),
     path("autopay/create/", views.CreateAutopayApiView.as_view()),
+    path("autopay/update/<int:id>/", views.UpdateAutopayApiView.as_view()),
+    path("review/", views.SaveReviewApiView.as_view()),
     path("autopay/delete/<int:id>/",
          views.DeleteAutopayApiView.as_view()),
     # notifications

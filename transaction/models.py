@@ -51,6 +51,8 @@ class Autopayment(models.Model):
     last_payment = models.OneToOneField(
         Transaction, on_delete=models.PROTECT, null=True, related_name="transaction_autopay")
     name = models.CharField(max_length=50)
+    amount = models.DecimalField(max_digits=10, default=0, decimal_places=2)
+    uuid = models.CharField(max_length=250, default="")
     transaction_type = models.CharField(max_length=3)
     service_provider = models.CharField(max_length=20)
     number = models.CharField(max_length=50)
@@ -65,3 +67,10 @@ class Notifications(models.Model):
         get_user_model(), on_delete=models.CASCADE, related_name="user_notification")
     type = models.CharField(max_length=2)
     message = models.TextField()
+
+
+class Review(models.Model):
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE, related_name="user_review")
+    message = models.TextField()
+    star = models.IntegerField()

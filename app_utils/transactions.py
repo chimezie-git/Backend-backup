@@ -4,10 +4,6 @@ from users.models import CustomUser
 
 def debit(user: CustomUser, amount) -> bool:
     banks = BankInfo.objects.filter(user=user)
-    print(banks)
-    print(amount)
-    print(type(amount))
-    print("-------------")
     totalFunds = 0
     for bank in banks:
         totalFunds += bank.amount

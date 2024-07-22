@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Transaction, Beneficiaries, BankInfo, Autopayment, Notifications
+from .models import Transaction, Beneficiaries, BankInfo, Autopayment, Notifications, Review
 
 
 class TransactionAdmin(admin.ModelAdmin):
@@ -37,7 +37,14 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ('type',)
 
 
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'message', 'star')
+    search_fields = ('user', 'star')
+    list_filter = ('star',)
+
+
 admin.site.register(Transaction, TransactionAdmin)
+admin.site.register(Review, ReviewAdmin)
 admin.site.register(Beneficiaries, BeneficiaryAdmin)
 admin.site.register(BankInfo, BankInfoAdmin)
 admin.site.register(Autopayment, AutopaymentAdmin)

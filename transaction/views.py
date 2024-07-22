@@ -10,9 +10,9 @@ from .serializer import (TransactionDetailSerializer,
                          BeneficiaryDetailSerializer,
                          CreateAutopaySerializer,
                          AutopayDetailSerializer,
-                         NotificationSerializer)
+                         NotificationSerializer, ReviewSerializer,)
 
-from .models import Transaction, Beneficiaries, Autopayment, Notifications
+from .models import Transaction, Beneficiaries, Autopayment, Notifications, Review
 from users.serializers import EmptyFieldSerializer
 
 # transactions
@@ -90,7 +90,7 @@ class DeleteBeneficiaryApiView(GenericAPIView):
     permission_classes = [IsAuthenticated,]
 
     @extend_schema(request=None, responses=EmptyFieldSerializer)
-    def delete(self, request, id, *args, **kwargs):
+    def post(self, request, id, *args, **kwargs):
         try:
             user = getUserFromToken(request)
             beneficiary = Beneficiaries.objects.get(user=user, id=id)
@@ -112,6 +112,8 @@ class CreateAutopayApiView(GenericAPIView):
         try:
             user = getUserFromToken(request)
             name = request.data["name"]
+            uuid = request.data["uuid"]
+            amount = request.data["amount"]
             transaction_type = request.data["transaction_type"]
             service_provider = request.data["service_provider"]
             number = request.data["number"]
@@ -119,8 +121,14 @@ class CreateAutopayApiView(GenericAPIView):
             period = request.data["period"]
             custom_days = request.data["custom_days"]
             end_date = request.data["end_date"]
+            # check if data already exists
+            query_autopay = Autopayment.objects.filter(user=user, uuid=uuid)
+            if query_autopay.exists():
+                error_msg = {"msg": "autopayment data already exists"}
+                return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+
             autopay = Autopayment.objects.create(
-                user=user, name=name, transaction_type=transaction_type, service_provider=service_provider,
+                user=user, name=name, transaction_type=transaction_type, service_provider=service_provider, uuid=uuid, amount=amount,
                 number=number, amount_plan=amount_plan, period=period, custom_days=custom_days, end_date=end_date,
                 last_payment=None,
             )
@@ -129,6 +137,33 @@ class CreateAutopayApiView(GenericAPIView):
             return Response(json, status=status.HTTP_200_OK)
         except:
             error_msg = {"msg": "could not create autopayment"}
+            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UpdateAutopayApiView(GenericAPIView):
+    serializer_class = CreateAutopaySerializer
+    permission_classes = [IsAuthenticated,]
+
+    def post(self, request, id, *args, **kwargs):
+        try:
+            autopay = Autopayment.objects.get(id=id)
+            autopay.name = request.data["name"]
+            autopay.uuid = request.data["uuid"]
+            autopay.amount = request.data["amount"]
+            autopay.transaction_type = request.data["transaction_type"]
+            autopay.service_provider = request.data["service_provider"]
+            autopay.number = request.data["number"]
+            autopay.amount_plan = request.data["amount_plan"]
+            autopay.period = request.data["period"]
+            autopay.custom_days = request.data["custom_days"]
+            autopay.end_date = request.data["end_date"]
+
+            autopay.save()
+            json = {"msg": "autopayment saved"} | AutopayDetailSerializer(
+                autopay).data
+            return Response(json, status=status.HTTP_200_OK)
+        except:
+            error_msg = {"msg": "could not update autopayment"}
             return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -193,3 +228,22 @@ class GetNotificationsApiView(GenericAPIView):
         except:
             data = {"msg": "could not get notifications"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
+
+
+# save review
+
+class SaveReviewApiView(GenericAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated,]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            user = getUserFromToken(request)
+            message = request.data["message"]
+            star = request.data["star"]
+            Review.objects.create(message=message, star=star, user=user)
+            json = {"msg": "Review sent"}
+            return Response(json, status=status.HTTP_200_OK)
+        except:
+            error_msg = {"msg": "could not create review"}
+            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
