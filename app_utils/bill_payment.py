@@ -2,7 +2,7 @@ import requests
 import app_utils.secret_keys as keys
 from app_utils.custom_types import CustomResponse
 
-__server_error_msg = "Giftbills Server Error"
+__server_error_msg = "Unable to process payment"
 
 
 def buyAirtime(provider: str, number: str, amount: str, reference: str) -> CustomResponse:

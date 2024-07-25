@@ -18,6 +18,10 @@ def generateRef(user: CustomUser) -> str:
     return f"{user.first_name[0]}{user.last_name[0]}{millis}"
 
 
+def _hasFunds(user: CustomUser, amount) -> bool:
+    return transactions.hasFunds(user, decimal.Decimal(amount))
+
+
 def _debitUser(user: CustomUser, amount) -> bool:
     return transactions.debit(user, decimal.Decimal(amount))
 
@@ -120,6 +124,8 @@ class BuyAirtimeApI(GenericAPIView):
         provider, number, amount, ben_id, autopay_id = getBillNumForm(request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        if not _hasFunds(user, amount):
+            return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = buyAirtime(provider, number, amount, ref)
         if result.is_success():
             if not _debitUser(user, amount):
@@ -141,6 +147,8 @@ class BuyDataApI(GenericAPIView):
             request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        if not _hasFunds(user, amount):
+            return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = buyData(provider, number, plan_id, package_code, ref)
         if result.is_success():
             if not _debitUser(user, amount):
@@ -161,6 +169,8 @@ class PayElectricityApI(GenericAPIView):
         provider, number, amount, ben_id, autopay_id = getBillNumForm(request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        if not _hasFunds(user, amount):
+            return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = payElectricity(provider, number, amount, ref)
         if result.is_success():
             if not _debitUser(user, amount):
@@ -182,8 +192,9 @@ class PayCableApI(GenericAPIView):
             request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        if not _hasFunds(user, amount):
+            return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = payCable(provider, number, plan_id, ref)
-
         if result.is_success():
             tran = saveTransaction(user, ref, f"{amount}",
                                    tType.cable, provider, number, ben_id=ben_id, autopay_id=autopay_id,)
@@ -204,6 +215,8 @@ class FundBettingApI(GenericAPIView):
             request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        if not _hasFunds(user, amount):
+            return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = payBetting(provider, customer_id, amount, ref)
         if result.is_success():
             tran = saveTransaction(user, ref, f"{amount}",
@@ -224,6 +237,8 @@ class SendBulkSmsApI(GenericAPIView):
         sender_name, message, numbers, ben_id, autopay_id = getSmsForm(request)
         user = getUserFromToken(request)
         ref = generateRef(user)
+        # if not _hasFunds(user, amount):
+        #     return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
         result = sendBulkSMS(sender_name, message, numbers)
         if result.is_success():
             amount = result.data["data"]["cost"]
