@@ -7,16 +7,17 @@ from app_utils import secret_keys as keys
 
 
 def sendEmailCode(first_name: str, code: str, to: str) -> bool:
-    result = send_mail("Verify your account for Nitrobills",
-                       f"""
-Hello {first_name},
+    result = send_mail(
+            "Verify your account for Nitrobills",
+            f"""
+            Hello {first_name},
 
-Your Nitrobills verification code is {code}. Dont share this with anyone.
+            Your Nitrobills verification code is {code}. Dont share this with anyone.
 
-Thanks,
+            Thanks,
 
-Your Nitrobills team
-""",
+            Your Nitrobills team
+            """,
         settings.EMAIL_HOST_USER,
         [to])
     return result == 1
@@ -24,14 +25,14 @@ Your Nitrobills team
 
 def sendSMSCode(phone_number: str, code: str) -> dict:
     """
-        send sms to phone number with otp code.
-        phone number format -> 2349012345678
+    send sms to phone number with otp code.
+    phone number format -> 2349012345678
     """
     url = f"{keys.termii_base_url}/api/sms/send"
     payload = {
         "to": phone_number.replace('+', ''),
         "from": "Nitrobills",
-        "sms": f"Your Nitrobills verification code is {code}. Dont share this with anyone",
+        "sms": f"Your Nitrobills verification code is {code}. Don't share this with anyone",
         "type": "plain",
         "channel": "generic",
         "api_key": keys.termii_api_key,
@@ -39,14 +40,21 @@ def sendSMSCode(phone_number: str, code: str) -> dict:
     headers = {
         'Content-Type': 'application/json',
     }
-    response = requests.request("POST", url, headers=headers, json=payload)
-    code = response.status_code
-    message = dict()
+    response = requests.post(url, headers=headers, json=payload)
+
+    message = {}
     try:
         data = response.json()
-        message = {"msg": data["message"]}
-    except:
-        message = {"msg": f"Error {code}: failed to send otp message"}
+        message = {"msg": data.get("message", "Message sent successfully")}
+    except Exception as e:
+        message = {"msg": f"Error: failed to send OTP message. Details: {str(e)}"}
+
+    """ Return success or failure message based on status code. """
+    if response.status_code == 200:
+        message["status"] = "success"
+    else:
+        message["status"] = "failure"
+
     return message
 
 
