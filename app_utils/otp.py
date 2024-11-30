@@ -71,6 +71,3 @@ def is_expired(otp_time, minutes_valid=30) -> bool:
     now = timezone.now()
     diff_day = now - otp_time
     return diff_day.total_seconds() > (60*minutes_valid)
-
-
-# sendSMSCode("2349092202826", "223344")
