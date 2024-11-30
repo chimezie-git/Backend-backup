@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     "bills.apps.BillsConfig",
     "web.apps.WebConfig",
     "webhook.apps.WebhookConfig",
-    "transaction.apps.TransactionConfig", 
+    "transaction.apps.TransactionConfig",
 ]
 
 MIDDLEWARE = [
@@ -93,6 +93,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 
 # Default primary key field type
@@ -106,6 +107,7 @@ AUTHENTICATION_BACKENDS = [
 
 REST_AUTH_SERIALIZERS = {
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
+    'TOKEN_SERIALIZER': 'rest_framework.authtoken.serializers.TokenSerializer',
 }
 
 REST_AUTH_REGISTER_SERIALIZERS = {
@@ -117,10 +119,10 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        # "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ],
-    "DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -132,3 +134,4 @@ SPECTACULAR_SETTINGS = {
 ACCOUNT_ADAPTER = 'users.adapter.CustomAccountAdapter'
 AUTH_USER_MODEL = "users.CustomUser"
 SITE_ID = 1
+CONFIRM_EMAIL_ON_GET = True
