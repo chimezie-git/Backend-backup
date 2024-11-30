@@ -25,7 +25,7 @@ from app_utils.virtual_account import createAccount, getBankInfo
 from app_utils.app_enums import TransactionStatus as tranStatus
 from transaction.models import BankInfo
 from transaction.serializer import BankInfoSerializer
-
+from rest_framework.authtoken.models import Token
 from dj_rest_auth.app_settings import api_settings
 
 
@@ -54,8 +54,8 @@ def sendEmailVerification(request, user: CustomUser) -> bool:
 
 
 def generateReferralCode(user) -> str:
-    text1 = user.first_name[0].capitalize()
-    text2 = user.last_name[0].capitalize()
+    text1 = user.first_name[0].capitalize() if user.first_name else "X"
+    text2 = user.last_name[0].capitalize() if user.last_name else "Y"
     code = f"{user.id}".rjust(6, '0')
     return f"{text1}{text2}{code}"
 
@@ -102,7 +102,6 @@ class CustomRegistrationsView(RegisterView):
         # user = self.perform_create(serializer)
         UserData.objects.create(user=user)
         headers = self.get_success_headers(serializer.data)
-        print("get response data")
         data = self.get_response_data(user)
         # login
         if (not data):
@@ -191,6 +190,7 @@ class ConfirmOTPPhoneView(GenericAPIView):
         user_query = get_user_model().objects.filter(phone_number=phone)
         if user_query.exists():
             user = user_query[0]
+            print(user)
             print(f"saved otp {user.otp_code}/")
             print(f"current otp {otp_code}/")
             if otp.is_expired(user.otp_time):
@@ -240,16 +240,16 @@ class UpdatePinCodeView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         try:
-            pin = request.data["pin"]
+            pin = request.data.get("pin")
             user = getUserFromToken(request)
+            if not hasattr(user, 'data_user'):
+                return Response({"msg": "User data not found"}, status=status.HTTP_404_NOT_FOUND)
             user_data: UserData = user.data_user
             user_data.pin_code = pin
             user_data.save()
-            data = {"msg": "pin changed"}
-            return Response(data, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "Phone number not found"}
-            return Response(data, status=status.HTTP_404_NOT_FOUND)
+            return Response({"msg": "pin changed"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"msg": f"An error occurred: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ConfirmPinView(GenericAPIView):
