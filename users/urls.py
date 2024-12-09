@@ -8,10 +8,10 @@ from .views import (CustomRegistrationsView, ResendOTPView, ChangePhoneNumber, F
 
 urlpatterns = [
     path("register/", CustomRegistrationsView.as_view(), name='account_signup'),
-    path("send_sms_otp/", ResendOTPView.as_view(), name="send_otp"),
-    path("send_email_otp/", SendEmailOTP.as_view(), name="send_otp"),
-    path("confirm_otp/phone/", ConfirmOTPPhoneView.as_view(), name="confirm_otp"),
-    path("confirm_otp/pin/", ConfirmOTPPinView.as_view(), name="confirm_otp"),
+    path("send_sms_otp/", ResendOTPView.as_view(), name="send_sms_otp"),
+    path("send_email_otp/", SendEmailOTP.as_view(), name="send_email_otp"),
+    path("confirm_otp/phone/", ConfirmOTPPhoneView.as_view(), name="confirm_phone_otp"),
+    path("confirm_otp/pin/", ConfirmOTPPinView.as_view(), name="confirm_pin_otp"),
     path('login/', LoginView.as_view(), name='rest_login'),
     re_path(
         r'^account-confirm-email/(?P<key>[-:\w]+)/$', confirm_email_view,
