@@ -29,8 +29,8 @@ class ListTransactions(GenericAPIView):
             data = TransactionDetailSerializer(transactions, many=True)
             json = {"msg": "success", "data": data.data}
             return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not get transactions"}
+        except Exception as e:
+            data = {"msg": f"could not get transactions. Error: {str(e)}"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 # beneficiaries
@@ -56,8 +56,8 @@ class ListBeneficiaries(GenericAPIView):
                 content.append(ben_data)
             json = {"msg": "success", "data": content}
             return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not get transactions"}
+        except Exception as e:
+            data = {"msg": f"could not get transactions. Error: {str(e)}"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -80,26 +80,28 @@ class CreateBeneficiaryApiView(GenericAPIView):
 
             json = {"msg": "beneficiary saved"} | BeneficiaryDetailSerializer(
                 beneficiary).data
-            return Response(json, status=status.HTTP_200_OK)
-        except:
-            error_msg = {"msg": "could not create beneficiary"}
-            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+            return Response(json, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            data = {"msg": f"could not create beneficiary. Error: {str(e)}"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
 class DeleteBeneficiaryApiView(GenericAPIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(request=None, responses=EmptyFieldSerializer)
-    def post(self, request, id, *args, **kwargs):
+    def delete(self, request, id, *args, **kwargs):  # Changed from post to delete
         try:
             user = getUserFromToken(request)
             beneficiary = Beneficiaries.objects.get(user=user, id=id)
             beneficiary.delete()
-            json = {"msg": "beneficiary deleted"}
-            return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not delete beneficiary"}
+            return Response(status=status.HTTP_204_NO_CONTENT)  # Updated status
+        except Beneficiaries.DoesNotExist:
+            data = {"msg": "Beneficiary not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            data = {"msg": f"An error occurred: {str(e)}"}
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
 # autopayment
 
@@ -134,10 +136,10 @@ class CreateAutopayApiView(GenericAPIView):
             )
             json = {"msg": "autopayment saved"} | AutopayDetailSerializer(
                 autopay).data
-            return Response(json, status=status.HTTP_200_OK)
-        except:
-            error_msg = {"msg": "could not create autopayment"}
-            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+            return Response(json, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            data = {"msg": f"could not create autopayments. Error: {str(e)}"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
 class UpdateAutopayApiView(GenericAPIView):
@@ -162,9 +164,9 @@ class UpdateAutopayApiView(GenericAPIView):
             json = {"msg": "autopayment saved"} | AutopayDetailSerializer(
                 autopay).data
             return Response(json, status=status.HTTP_200_OK)
-        except:
-            error_msg = {"msg": "could not update autopayment"}
-            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            data = {"msg": f"could not update autopayments. Error: {str(e)}"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
 class ListAutopayApiView(GenericAPIView):
@@ -186,13 +188,13 @@ class ListAutopayApiView(GenericAPIView):
                 content.append(autopay_data)
             json = {"msg": "success", "data": content}
             return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not get autopayments"}
+        except Exception as e:
+            data = {"msg": f"could not get autopayments. Error: {str(e)}"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
 class DeleteAutopayApiView(GenericAPIView):
-    permission_classes = [IsAuthenticated,]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(request=None, responses=EmptyFieldSerializer)
     def delete(self, request, id, *args, **kwargs):
@@ -200,11 +202,13 @@ class DeleteAutopayApiView(GenericAPIView):
             user = getUserFromToken(request)
             autopay = Autopayment.objects.get(user=user, id=id)
             autopay.delete()
-            json = {"msg": "autopayment deleted"}
-            return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not delete autopayment"}
+            return Response(status=status.HTTP_204_NO_CONTENT)  # Updated status
+        except Autopayment.DoesNotExist:
+            data = {"msg": "Autopayment not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            data = {"msg": f"An error occurred: {str(e)}"}
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
 # notifications
 
@@ -225,8 +229,8 @@ class GetNotificationsApiView(GenericAPIView):
                 content.append(notify_data)
             json = {"msg": "success", "data": content}
             return Response(json, status=status.HTTP_200_OK)
-        except:
-            data = {"msg": "could not get notifications"}
+        except Exception as e:
+            data = {"msg": f"could not get transactions. Error: {str(e)}"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -243,7 +247,8 @@ class SaveReviewApiView(GenericAPIView):
             star = request.data["star"]
             Review.objects.create(message=message, star=star, user=user)
             json = {"msg": "Review sent"}
-            return Response(json, status=status.HTTP_200_OK)
-        except:
-            error_msg = {"msg": "could not create review"}
-            return Response(error_msg, status=status.HTTP_400_BAD_REQUEST)
+            return Response(json, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            data = {"msg": f"could not get transactions. Error: {str(e)}"}
+            return Response(data, status=status.HTTP_404_NOT_FOUND)
+
