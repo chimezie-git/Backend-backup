@@ -24,5 +24,7 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 
 
+AUTH_USER_MODEL = 'users.CustomUser'
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
