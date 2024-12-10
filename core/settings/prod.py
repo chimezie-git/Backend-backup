@@ -5,15 +5,12 @@ from .common import *
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = False
 
-ALLOWED_HOSTS = ["nitrobills-backend.onrender.com",]
+ALLOWED_HOSTS = [".onrender.com",]
 
-CSRF_TRUSTED_ORIGINS = ["https://nitrobills-backend.onrender.com",]
+CSRF_TRUSTED_ORIGINS = ["https://nitrobills-backend-backup.onrender.com",]
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default= os.getenv("POSTGRESS_DATABASE_URL"),
-        conn_max_age=600
-    )
+    'default': dj_database_url.parse(os.environ.get("POSTGRESS_DATABASE_URL"))
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
