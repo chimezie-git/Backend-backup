@@ -131,8 +131,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0"
 }
 
-AUTH_USER_MODEL = 'users.CustomUser'
-
 ACCOUNT_ADAPTER = 'users.adapter.CustomAccountAdapter'
 AUTH_USER_MODEL = "users.CustomUser"
 SITE_ID = 1
