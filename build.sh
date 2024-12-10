@@ -8,6 +8,9 @@ pip install -r requirements.txt
 # Convert static asset files
 python manage.py collectstatic --no-input
 
+# Apply migrations
+python manage.py makemigrations
 python manage.py migrate
 
+# Start the application
 gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
