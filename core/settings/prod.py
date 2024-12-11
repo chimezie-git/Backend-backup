@@ -10,7 +10,10 @@ ALLOWED_HOSTS = [".onrender.com",]
 CSRF_TRUSTED_ORIGINS = ["https://nitrobills-backend-backup.onrender.com",]
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default= os.getenv("POSTGRESS_DATABASE_URL"),
+        conn_max_age=600
+    )
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -19,7 +22,6 @@ EMAIL_HOST_USER = os.getenv("EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_PORT = 465
 EMAIL_USE_SSL = True
-
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
