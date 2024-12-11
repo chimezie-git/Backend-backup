@@ -10,6 +10,3 @@ python manage.py collectstatic --no-input
 
 # Apply migrations
 python manage.py migrate
-
-# Start the application
-gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
