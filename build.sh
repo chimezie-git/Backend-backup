@@ -2,14 +2,13 @@
 # Exit on error
 set -o errexit
 
-# Modify this line as needed for your package manager (pip, poetry, etc.)
+# Install dependencies
 pip install -r requirements.txt
 
-# Convert static asset files
+# Collect static files
 python manage.py collectstatic --no-input
 
 # Apply migrations
-python manage.py makemigrations
 python manage.py migrate
 
 # Start the application
