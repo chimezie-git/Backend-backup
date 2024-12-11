@@ -1,7 +1,6 @@
 env/
 *.env
 *__pycache__/
-*/migrations/
 *.sqlite
 *.sqlite3
 db.json
