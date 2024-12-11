@@ -9,6 +9,8 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 
 # Apply migrations
+python manage.py migrate users
+
 python manage.py migrate
 
 # Start the application
