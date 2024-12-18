@@ -25,7 +25,7 @@ def createAccount(email: str, first_name: str, last_name: str, phone: str, bank:
         data = response.json()
         message = data.pop("message")
         data = data | {"msg": message}
-    except:
+    except Exception:
         data = {"msg": "Server Error"}
 
     if code == 200:
@@ -47,5 +47,5 @@ def getBankInfo() -> list:
         bank1 = data[0]["provider_slug"]
         bank2 = data[1]["provider_slug"]
         return [bank1, bank2]
-    except:
+    except Exception:
         return "wema-bank"

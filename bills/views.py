@@ -11,11 +11,19 @@ from app_utils.app_enums import TransactionStatus, TransactionType as tType
 from users.models import CustomUser
 from transaction.models import Transaction, Beneficiaries, Autopayment
 from transaction.serializer import TransactionDetailSerializer
+from datetime import datetime
 
 
-def generateRef(user: CustomUser) -> str:
-    millis = round(time.time()*1000)
-    return f"{user.first_name[0]}{user.last_name[0]}{millis}"
+def generateRef(user):
+    millis = int(datetime.now().timestamp() * 1000)
+    first_name_initial = user.first_name[0] if user.first_name else ""
+    last_name_initial = user.last_name[0] if user.last_name else ""
+    if not first_name_initial and not last_name_initial:
+        identifier = f"user{user.id}"
+    else:
+        identifier = f"{first_name_initial}{last_name_initial}"
+    return f"{identifier}{millis}"
+
 
 
 def _hasFunds(user: CustomUser, amount) -> bool:
@@ -62,17 +70,13 @@ def saveTransaction(user: CustomUser,
     return tran
 
 
-def getBillNumForm(request) -> tuple[str, str, str, int | None, int | None]:
-    provider = request.data['provider']
-    number = request.data['number']
-    amount = request.data['amount']
-    id = None
-    autopay_id = None
-    if 'beneficiary_id' in request.data.keys():
-        id = request.data['beneficiary_id']
-    if 'autopay_id' in request.data.keys():
-        autopay_id = request.data['autopay_id']
-    return (provider, number, amount, id, autopay_id)
+def getBillNumForm(request):
+    provider = request.data.get('provider')
+    customer_id = request.data.get('customer_id')
+    amount = request.data.get('amount')
+    ben_id = request.data.get('beneficiary_id')
+    autopay_id = request.data.get('autopay_id')
+    return provider, customer_id, amount, ben_id, autopay_id
 
 
 def getBillPlanForm(request) -> tuple[str, str, str, str, int | None, int | None]:
@@ -211,8 +215,7 @@ class FundBettingApI(GenericAPIView):
     serializer_class = BillNumberSerializer
 
     def post(self, request, *args, **kwargs):
-        provider, customer_id, amount, ben_id, autopay_id = getBillNumForm(
-            request)
+        provider, customer_id, amount, ben_id, autopay_id = getBillNumForm(request)
         user = getUserFromToken(request)
         ref = generateRef(user)
         if not _hasFunds(user, amount):
@@ -220,7 +223,7 @@ class FundBettingApI(GenericAPIView):
         result = payBetting(provider, customer_id, amount, ref)
         if result.is_success():
             tran = saveTransaction(user, ref, f"{amount}",
-                                   f"{tType.betting.value}|{provider}", customer_id, ben_id=ben_id, autopay_id=autopay_id,)
+                                   f"{tType.betting.value}|{provider}", customer_id, ben_id=ben_id, autopay_id=autopay_id)
             if not _debitUser(user, amount):
                 return Response({"msg": "Insufficient funds"}, status=status.HTTP_400_BAD_REQUEST)
             json = result.data | {
@@ -228,7 +231,6 @@ class FundBettingApI(GenericAPIView):
             return Response(json, status=status.HTTP_200_OK)
         else:
             return Response(result.data, status=status.HTTP_400_BAD_REQUEST)
-
 
 class SendBulkSmsApI(GenericAPIView):
     serializer_class = BulkSMSSerializer
