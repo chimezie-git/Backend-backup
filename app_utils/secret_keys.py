@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-termii_base_url = os.getenv("TERMII_BASE_URL")
-termii_api_key = os.getenv("TERMII_API_KEY")
+sendchamp_base_url = os.getenv("SENDCHAMP_BASE_URL")
+sendchamp_api_key = os.getenv("SENDCHAMP_API_KEY")
 
 giftbills_base_url = os.getenv("GIFTBILLS_BASE_URL")
 giftbills_api_key = os.getenv("GIFTBILLS_API_KEY")

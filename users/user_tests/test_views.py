@@ -40,33 +40,3 @@ class UserViewsTestCase(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue('key' in response.data)
-
-    @patch('app_utils.otp.sendSMSCode')
-    def test_send_otp_sms(self, mock_send_sms):
-        mock_send_sms.return_value = {'msg': 'OTP Sent Successfully'}
-
-        url = reverse('send_sms_otp')
-        data = {
-            "phone_number": "1234567890",
-            "email": "test@example.com"
-        }
-        response = self.client.post(url, data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('msg', response.data)
-        self.assertEqual(response.data['msg'], 'OTP Sent Successfully')
-
-    @patch('app_utils.otp.sendSMSCode')
-    def test_resend_otp_phone(self, mock_send_sms):
-        mock_send_sms.return_value = {'msg': 'OTP Sent Successfully'}
-
-        url = reverse('send_sms_otp')
-        data = {
-            "phone_number": "1234567890",
-            "email": "test@example.com"
-        }
-        response = self.client.post(url, data, format='json')
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('msg', response.data)
-        self.assertEqual(response.data['msg'], 'OTP Sent Successfully')

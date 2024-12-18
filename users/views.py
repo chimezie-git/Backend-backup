@@ -1,4 +1,3 @@
-import datetime
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -25,23 +24,38 @@ from app_utils.virtual_account import createAccount, getBankInfo
 from app_utils.app_enums import TransactionStatus as tranStatus
 from transaction.models import BankInfo
 from transaction.serializer import BankInfoSerializer
-from rest_framework.authtoken.models import Token
-from dj_rest_auth.app_settings import api_settings
 
 
 def sendOtpSMS(user) -> dict:
+    """
+    Sends OTP to the user's phone number. Handles debug mode and production scenarios.
+
+    :param user: User instance to which the OTP should be sent.
+    :return: Dictionary with the result of the OTP sending operation.
+    """
     if settings.DEBUG:
-        print("------------OTP Sent To ------------")
-        print(f"phone:{user.phone_number}")
-        print(f" otp: {user.otp_code} date:{user.otp_time}")
-        print("------------------------------------")
-        return {"msg": "OTP Sent Successfully"}
-    else:
-        return otp.sendSMSCode(user.phone_number, user.otp_code)
+        print("------------ SMS OTP Sent To ------------")
+        print(user.phone_number)
+        print("------------------------------------------")
+        return {"status": "success", "message": "OTP sent successfully in debug mode"}
+
+    return otp.sendSMSCode(user.phone_number, user=user)
 
 
 def sendOtpEmail(user):
-    otp.sendEmailCode(user.first_name, user.otp_code, user.email)
+    """
+    Sends OTP to the user's email. Handles debug mode and production scenarios.
+
+    :param user: User instance to which the OTP email should be sent.
+    :return: Dictionary with the result of the OTP sending operation.
+    """
+    if settings.DEBUG:
+        print("------------ Email OTP Sent To ------------")
+        print(user.email)
+        print("-------------------------------------------")
+        return {"status": "success", "message": "OTP sent successfully in debug mode"}
+
+    return otp.sendEmailCode(user.email, user=user)
 
 
 def sendEmailVerification(request, user: CustomUser) -> bool:
@@ -70,8 +84,8 @@ def getApiKeys() -> dict:
     return {
         "giftbills_url": sKeys.giftbills_base_url,
         "giftbills_secret": sKeys.giftbills_api_key,
-        "termii_url": sKeys.termii_base_url,
-        "termii_secret": sKeys.termii_api_key,
+        "sendchamp_base_url": sKeys.sendchamp_base_url,
+        "sendchamp_api_key": sKeys.sendchamp_api_key,
         "airtime_ng_secret": sKeys.airtime_ng_secret,
         "airtime_ng_url": sKeys.airtime_ng_url
     }
@@ -99,28 +113,26 @@ class CustomRegistrationsView(RegisterView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save(self.request)
-        # user = self.perform_create(serializer)
         UserData.objects.create(user=user)
         headers = self.get_success_headers(serializer.data)
         data = self.get_response_data(user)
-        # login
-        if (not data):
-            data = dict()
-        response = self.__login(request, user, serializer, headers, data)
-        # send otp message
+
+        # Handle referral code logic
         if len(user.referral_code) > 0:
             updateReferralCode(user.referral_code)
-
-        user.otp_code = otp.generate_otp_code()
         user.referral_code = generateReferralCode(user)
         user.save()
-        # create user data
+
+        # Login and send OTP
         try:
             sendEmailVerification(request, user)
-            sendOtpSMS(user)
-        except:
-            pass
-        return response
+            otp_result = sendOtpSMS(user)
+            if otp_result.get("status") != "success":
+                raise Exception(otp_result.get("message", "Failed to send OTP"))
+        except Exception as e:
+            print(f"Error sending OTP: {str(e)}")
+
+        return self.__login(request, user, serializer, headers, data)
 
 
 def confirm_email_view(request, **kwargs):
@@ -131,7 +143,7 @@ def confirm_email_view(request, **kwargs):
         user.email_verified = True
         user.save()
         return render(request, "confirm_email_success.html", {"user": user})
-    except:
+    except Token.DoesNotExist:
         return render(request, "confirm_email_failed.html")
 
 
@@ -139,46 +151,46 @@ class ResendOTPView(GenericAPIView):
     serializer_class = PhoneSerializer
 
     def post(self, request, *args, **kwargs):
-        phone = request.data['phone_number']
-        user_query = get_user_model().objects.filter(phone_number=phone)
+        """
+        Resends OTP to the user's phone number if it exists in the database.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone_number = serializer.validated_data['phone_number']
+
+        user_query = get_user_model().objects.filter(phone_number=phone_number)
         if user_query.exists():
-            user = user_query[0]
-            user.otp_code = otp.generate_otp_code()
-            user.otp_time = datetime.datetime.now()
-            user.save()
-            data = sendOtpSMS(user)
-            msg: str = data["msg"]
-            msg_lower = msg.lower()
-            if "success" in msg_lower:
-                return Response(data, status=status.HTTP_200_OK)
+            user = user_query.first()
+            result = sendOtpSMS(user)
+            if result.get("status") == "success":
+                return Response({"msg": result.get("message", "OTP sent successfully")}, status=status.HTTP_200_OK)
             else:
-                return Response({"msg": f"Otp Failed: {msg}"}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            data = {"msg": "Phone number not found"}
-            return Response(data, status=status.HTTP_404_NOT_FOUND)
+                return Response({"msg": result.get("message", "Failed to send OTP")}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"msg": "Phone number not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class SendEmailOTP(GenericAPIView):
     serializer_class = EmailSerializer
 
     def post(self, request, *args, **kwargs):
-        email = request.data['email']
+        """
+        Handles sending OTP to a user's email if the email exists in the database.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
         user_query = get_user_model().objects.filter(email=email)
         if user_query.exists():
-            user = user_query[0]
-            # if not user.email_verified:
-            #     err_msg = {
-            #         "msg": "Verify your email address before using this verification method"}
-            #     return Response(err_msg, status=status.HTTP_404_NOT_FOUND)
-            user.otp_code = otp.generate_otp_code()
-            user.otp_time = datetime.datetime.now()
-            user.save()
-            sendOtpEmail(user)
-            data = {"msg": "OTP Email Sent"}
-            return Response(data, status=status.HTTP_200_OK)
-        else:
-            data = {"msg": "Email not found"}
-            return Response(data, status=status.HTTP_404_NOT_FOUND)
+            user = user_query.first()
+            result = sendOtpEmail(user)
+            if result.get("status") == "success":
+                return Response({"msg": result.get("message", "OTP sent successfully")}, status=status.HTTP_200_OK)
+            else:
+                return Response({"msg": result.get("message", "Failed to send OTP")}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"msg": "Email not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class ConfirmOTPPhoneView(GenericAPIView):
@@ -188,26 +200,26 @@ class ConfirmOTPPhoneView(GenericAPIView):
         otp_code = request.data["otp_code"]
         phone = request.data["phone_number"]
         user_query = get_user_model().objects.filter(phone_number=phone)
+
         if user_query.exists():
             user = user_query[0]
-            print(user)
-            print(f"saved otp {user.otp_code}/")
-            print(f"current otp {otp_code}/")
-            if otp.is_expired(user.otp_time):
-                data = {"otp": "OTP has expired resend a new code"}
-                return Response(data, status=status.HTTP_400_BAD_REQUEST)
-            if user.otp_code == otp_code:
+            # Replace manual OTP comparison with API verification
+            reference = user.otp_reference
+            response = otp.confirmOTPCode(reference=reference, token=otp_code)
+
+            if response["status"] == "success" and response.get("is_verified"):
                 user.phone_verified = True
                 user.save()
                 token = Token.objects.get(user=user).key
                 data = {"msg": "User Account Verified", "key": token}
                 return Response(data, status=status.HTTP_200_OK)
             else:
-                data = {"otp": "OTP incorrect"}
+                data = {"otp": response.get("msg", "OTP verification failed")}
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
         else:
             data = {"msg": "Phone number not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
+
 
 
 class ConfirmOTPPinView(GenericAPIView):
@@ -217,20 +229,22 @@ class ConfirmOTPPinView(GenericAPIView):
         otp_code = request.data["otp_code"]
         email = request.data["email"]
         user_query = get_user_model().objects.filter(email=email)
+
         if user_query.exists():
             user = user_query[0]
-            if otp.is_expired(user.otp_time):
-                data = {"msg": "OTP has expired resend a new code"}
-                return Response(data, status=status.HTTP_400_BAD_REQUEST)
-            if user.otp_code == otp_code:
+            # Assuming email OTPs also use Sendchamp
+            reference = user.otp_reference
+            response = otp.confirmOTPCode(reference=reference, token=otp_code)
+
+            if response["status"] == "success" and response["is_verified"]:
                 token = Token.objects.get(user=user).key
                 data = {"msg": "User Account Verified", "key": token}
                 return Response(data, status=status.HTTP_200_OK)
             else:
-                data = {"otp": "OTP incorrect"}
+                data = {"otp": response["msg"]}
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
         else:
-            data = {"msg": "Phone number not found"}
+            data = {"msg": "Email not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -267,7 +281,7 @@ class ConfirmPinView(GenericAPIView):
             else:
                 data = {"msg": "pin is incorrect"}
                 return Response(data, status=status.HTTP_404_NOT_FOUND)
-        except:
+        except CustomUser.DoesNotExist:
             data = {"msg": "Phone number not found"}
             return Response(data, status=status.HTTP_404_NOT_FOUND)
 
@@ -315,7 +329,7 @@ class ChangeEmailView(GenericAPIView):
             user.save()
             response = {'msg': 'Email updated successfully'}
             return Response(response, status=status.HTTP_200_OK)
-        except:
+        except CustomUser.DoesNotExist:
             response = {'msg': 'Email update failed'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -330,7 +344,7 @@ class ResendVerifyEmail(GenericAPIView):
             sendEmailVerification(request, user)
             response = {'msg': 'Email verification sent'}
             return Response(response, status=status.HTTP_200_OK)
-        except:
+        except CustomUser.DoesNotExist:
             response = {'msg': 'Email verification failed'}
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
@@ -383,8 +397,8 @@ class GetUserDataView(GenericAPIView):
                 data = response.data | user_data | custom_user_data | api_secrets
             data["banks"] = banks
             return Response(data, status=status.HTTP_200_OK)
-        except:
-            return Response({"msg": "Error getting user data"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"msg": f"Error getting user data: {e}"}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChangePhoneNumber(GenericAPIView):
@@ -404,7 +418,7 @@ class ChangePhoneNumber(GenericAPIView):
                 user.phone_number = phone
                 user.save()
                 return Response({"msg": "Phone number changed succesfully"}, status=status.HTTP_200_OK)
-        except:
+        except CustomUser.DoesNotExist:
             return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -423,5 +437,5 @@ class ForgetPassword(GenericAPIView):
             else:
                 data = {"phone": "Phone number is not registered"}
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
-        except:
+        except Exception:
             return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)

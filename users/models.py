@@ -9,6 +9,7 @@ class CustomUser(AbstractUser):
     otp_code = models.CharField(max_length=6, default="")
     otp_time = models.DateTimeField(auto_now=True)
     referral_code = models.CharField(max_length=10, default="")
+    otp_reference = models.CharField(max_length=255, null=True, blank=True)
 
 
 class UserData(models.Model):

@@ -1,73 +1,139 @@
 import requests
-from random import randint
-from django.core.mail import send_mail
-from django.conf import settings
-from django.utils import timezone
 from app_utils import secret_keys as keys
 
 
-def sendEmailCode(first_name: str, code: str, to: str) -> bool:
-    result = send_mail(
-            "Verify your account for Nitrobills",
-            f"""
-            Hello {first_name},
-
-            Your Nitrobills verification code is {code}. Dont share this with anyone.
-
-            Thanks,
-
-            Your Nitrobills team
-            """,
-        settings.EMAIL_HOST_USER,
-        [to])
-    return result == 1
-
-
-def sendSMSCode(phone_number: str, code: str) -> dict:
+def sendEmailCode(to: str, user) -> dict:
     """
-    send sms to phone number with otp code.
-    phone number format -> 2349012345678
+    Sends an email with OTP using Sendchamp's API.
+
+    :param to: Email address to send the OTP to.
+    :return: Response containing the status and a unique reference for the OTP.
     """
-    url = f"{keys.termii_base_url}/api/sms/send"
+    url = f"{keys.sendchamp_base_url}/verification/create"
+    headers = {
+        "Accept": "application/json,text/plain,*/*",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {keys.sendchamp_api_key}"
+    }
+
     payload = {
-        "to": phone_number.replace('+', ''),
-        "from": "Nitrobills",
-        "sms": f"Your Nitrobills verification code is {code}. Don't share this with anyone",
-        "type": "plain",
-        "channel": "generic",
-        "api_key": keys.termii_api_key,
+        "channel": "email",
+        "sender": "Nitrobills",
+        "token_type": "numeric",
+        "token_length": 6,
+        "expiration_time": 5,
+        "customer_email_address": to,
+        "meta_data": {},
+        "in_app_token": False
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    try:
+        data = response.json()
+        if response.status_code == 200 and data.get("status") == "success":
+            reference = data["data"].get("reference", "")
+            user.otp_reference = reference
+            user.save()
+            return {
+                "status": "success",
+                "message": data.get("message", "Email sent successfully"),
+                "reference": data["data"].get("reference", "")
+            }
+        else:
+            return {
+                "status": "failure",
+                "message": data.get("message", "Failed to send email")
+            }
+    except Exception as e:
+        return {
+            "status": "failure",
+            "message": f"Error: failed to send email. Details: {str(e)}"
+        }
+
+
+def sendSMSCode(phone_number: str, user) -> dict:
+    """
+    Sends an OTP to the provided phone number using Sendchannel's API.
+
+    :param phone_number: Customer's phone number in the format 234XXXXXXXXXX
+    :return: Response containing the status and a unique reference for the OTP.
+    """
+    url = f"{keys.sendchamp_base_url}/verification/create"
+    payload = {
+        "channel": "sms",
+        "sender": "Nitrobills",
+        "token_type": "numeric",
+        "token_length": 6,
+        "expiration_time": 5,
+        "customer_mobile_number": phone_number.replace('+', ''),
+        "meta_data": "",
+        "in_app_token": False
     }
     headers = {
-        'Content-Type': 'application/json',
+        "Accept": "application/json,text/plain,*/*",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {keys.sendchamp_api_key}"
     }
     response = requests.post(url, headers=headers, json=payload)
 
     message = {}
     try:
         data = response.json()
-        message = {"msg": data.get("message", "Message sent successfully")}
+        if response.status_code == 200 and data.get("status") == "success":
+            reference = data["data"].get("reference", "")
+            user.otp_reference = reference
+            user.save()
+            message = {
+                "status": "success",
+                "msg": data.get("message", "OTP sent successfully"),
+                "reference": data["data"]["reference"]
+            }
+        else:
+            message = {
+                "status": "failure",
+                "msg": data.get("message", "Failed to send OTP")
+            }
     except Exception as e:
-        message = {"msg": f"Error: failed to send OTP message. Details: {str(e)}"}
-
-    """ Return success or failure message based on status code. """
-    if response.status_code == 200:
-        message["status"] = "success"
-    else:
-        message["status"] = "failure"
-
+        message = {"status": "failure", "msg": f"Error: {str(e)}"}
     return message
 
 
-def generate_otp_code() -> str:
-    numbers = list()
-    for num in range(6):
-        val = randint(0, 9)
-        numbers.append(f"{val}")
-    otp_code = "".join(numbers)
-    return otp_code
+def confirmOTPCode(reference: str, token: str) -> dict:
+    """
+    Confirms an OTP using Sendchannel's API.
 
+    :param reference: The unique reference from the send_otp response.
+    :param token: The OTP provided by the customer.
+    :return: Response containing the verification status.
+    """
+    url = f"{keys.sendchamp_base_url}/verification/confirm"
+    payload = {
+        "verification_reference": reference,
+        "verification_code": token
+    }
+    headers = {
+        "Accept": "application/json,text/plain,*/*",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {keys.sendchamp_api_key}"
+    }
+    response = requests.post(url, headers=headers, json=payload)
 
-def is_expired(otp_time, minutes_valid=30) -> bool:
-    now = timezone.now()
-    diff_day = now - otp_time
-    return diff_day.total_seconds() > (60*minutes_valid)
+    message = {}
+    try:
+        data = response.json()
+        if response.status_code == 200 and data.get("status") == "success":
+            message = {
+                "status": "success",
+                "msg": data.get("message", "OTP confirmed successfully"),
+                "is_verified": True
+            }
+        else:
+            message = {
+                "status": "failure",
+                "msg": data.get("message", "Failed to confirm OTP"),
+                "is_verified": False
+            }
+    except Exception as e:
+        message = {"status": "failure", "msg": f"Error: {str(e)}", "is_verified": False}
+    return message
