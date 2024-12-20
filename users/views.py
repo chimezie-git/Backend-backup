@@ -119,27 +119,22 @@ class CustomRegistrationsView(RegisterView):
         headers = self.get_success_headers(serializer.data)
         data = self.get_response_data(user)
 
-        # Generate referral code and save
+        if (not data):
+            data = dict()
+        response = self.__login(request, user, serializer, headers, data)
+        # send otp message
         if len(user.referral_code) > 0:
             updateReferralCode(user.referral_code)
+
         user.referral_code = generateReferralCode(user)
         user.save()
-
-        # Try sending verification email and OTP
+        # create user data
         try:
             sendEmailVerification(request, user)
-        except Exception as e:
-            print(f"Email verification failed: {e}")
-
-        try:
-            otp_result = sendOtpSMS(user)
-            if otp_result.get("status") != "success":
-                print(f"OTP sending failed: {otp_result.get('message', 'Unknown error')}")
-        except Exception as e:
-            print(f"OTP sending encountered an error: {e}")
-
-        # Return login response
-        return self.__login(request, user, serializer, headers, data)
+            sendOtpSMS(user)
+        except Exception:
+            pass
+        return response
 
 
 def confirm_email_view(request, **kwargs):
