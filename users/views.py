@@ -239,6 +239,8 @@ class ConfirmOTPPinView(GenericAPIView):
             response = otp.confirmOTPCode(reference=reference, token=otp_code)
 
             if response["status"] == "success" and response["is_verified"]:
+                user.email_verified = True
+                user.save()
                 token = Token.objects.get(user=user).key
                 data = {"msg": "User Account Verified", "key": token}
                 return Response(data, status=status.HTTP_200_OK)
