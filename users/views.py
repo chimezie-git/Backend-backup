@@ -443,3 +443,19 @@ class ForgetPassword(GenericAPIView):
                 return Response(data, status=status.HTTP_400_BAD_REQUEST)
         except Exception:
             return Response({"msg": "Could not change phone number"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteAccountView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            # Get the user from the token
+            user = request.user
+
+            user.delete()
+
+            return Response({"msg": "User account deleted successfully."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"msg": f"Error occurred while deleting the account: {e}"}, status=status.HTTP_400_BAD_REQUEST)

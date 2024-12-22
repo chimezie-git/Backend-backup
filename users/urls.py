@@ -5,7 +5,7 @@ from .views import (
     CustomRegistrationsView, ResendOTPView, ChangePhoneNumber, ForgetPassword,
     SendEmailOTP, ConfirmOTPPhoneView, ConfirmOTPPinView, GetUserDataView,
     ChangePasswordView, ChangeEmailView, ResendVerifyEmail, confirm_email_view,
-    UpdatePinCodeView, ConfirmPinView
+    UpdatePinCodeView, ConfirmPinView, DeleteAccountView
 )
 
 urlpatterns = [
@@ -36,4 +36,5 @@ urlpatterns = [
     # User Data and Phone Number
     path('user/data/', GetUserDataView.as_view(), name='get_user_data'),
     path('phone/change/', ChangePhoneNumber.as_view(), name="change_phone_number"),
+    path('delete-account/', DeleteAccountView.as_view(), name='delete_account'),
 ]
