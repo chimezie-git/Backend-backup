@@ -5,3 +5,4 @@ env/
 *.sqlite3
 db.json
 */staticfiles/
+/venv
