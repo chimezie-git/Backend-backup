@@ -447,6 +447,7 @@ class ForgetPassword(GenericAPIView):
 
 class DeleteAccountView(GenericAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = EmptyFieldSerializer
 
     def delete(self, request, *args, **kwargs):
         try:
