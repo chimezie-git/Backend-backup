@@ -16,7 +16,9 @@ def home(request):
     </head>
     <body>
         <h1>Welcome to the Home Page</h1>
-        <p>This is a simple page rendered directly from the view.</p>
+        <a href="https://nitrobills-backend-backup.onrender.com/api/docs/">Go to the Api Docs</a>
+        </br>
+        <a href="https://nitrobills-backend-backup.onrender.com/api/schema">Download Api Schema</a>
     </body>
     </html>
     """
