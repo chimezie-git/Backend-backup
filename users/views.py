@@ -25,7 +25,6 @@ from app_utils.app_enums import TransactionStatus as tranStatus
 from transaction.models import BankInfo
 from transaction.serializer import BankInfoSerializer
 
-
 def sendOtpSMS(user) -> dict:
     """
     Sends OTP to the user's phone number. Handles debug mode and production scenarios.
@@ -39,7 +38,20 @@ def sendOtpSMS(user) -> dict:
         print("------------------------------------------")
         return {"status": "success", "message": "OTP sent successfully in debug mode"}
 
-    return otp.sendSMSCode(user.phone_number, user=user)
+    # Production: Send actual SMS
+
+    try:
+        # Transform phone number format if it's 11 digits
+        phone_number = user.phone_number
+        if len(phone_number) == 11:
+            phone_number = '234' + user.phone_number[1:]
+
+        return otp.sendSMSCode(phone_number, user=user)
+    
+        # return otp.sendSMSCode("2348168589019", user=user)
+    except Exception as e:
+        print(f"OTP Sending Failed: {e}")  # Log error
+        return {"status": "error", "message": "Failed to send OTP"}
 
 
 def sendOtpEmail(user):
