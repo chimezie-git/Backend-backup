@@ -3,7 +3,7 @@ import dj_database_url
 from .common import *
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [".onrender.com",]
 
